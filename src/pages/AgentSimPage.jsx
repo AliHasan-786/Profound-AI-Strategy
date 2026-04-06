@@ -64,29 +64,48 @@ export default function AgentSimPage() {
         </div>
       </div>
 
+      {/* Requirements banner */}
+      <div style={{
+        background: '#111827', border: '1px solid #1F2937',
+        borderRadius: 10, padding: '14px 18px', marginBottom: 28,
+        display: 'flex', alignItems: 'flex-start', gap: 16,
+      }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 13, marginBottom: 6 }}>
+            Two ways to use this module
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ fontSize: 13, color: '#6B7280' }}>
+              <span style={{ color: '#22C55E', fontWeight: 600 }}>Demo trace</span> — Instant, no setup. Pre-run expense management scenario with full step-by-step reasoning.
+            </div>
+            <div style={{ fontSize: 13, color: '#6B7280' }}>
+              <span style={{ color: '#F59E0B', fontWeight: 600 }}>Live simulation</span> — Requires: backend running locally (<code style={{ background: '#1E293B', padding: '1px 5px', borderRadius: 3, fontSize: 12 }}>npm run dev</code>) + <code style={{ background: '#1E293B', padding: '1px 5px', borderRadius: 3, fontSize: 12 }}>OPENROUTER_API_KEY</code> in .env. Each run costs ~$0.001.
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={handleDemoSim}
+          style={{
+            background: '#1E293B', border: '1px solid #334155', color: '#F1F5F9',
+            borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 600,
+            cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+          }}
+        >
+          View demo trace →
+        </button>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: activeResult ? '420px 1fr' : '560px 1fr', gap: 40, alignItems: 'start' }}>
         {/* Setup panel */}
         <div>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 16, marginBottom: 4 }}>Configure Simulation</div>
+            <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 16, marginBottom: 4 }}>Live Simulation</div>
             <div style={{ fontSize: 13, color: '#4B5563' }}>
-              Select a scenario, optionally enter your brand, and run the simulation.
+              Select a scenario, optionally enter your brand, and run with a live LLM call.
             </div>
           </div>
 
           <AgentSimSetup onResult={(r) => { setResult(r); setShowDemo(false); }} />
-
-          <div style={{ marginTop: 16, textAlign: 'center' }}>
-            <button
-              onClick={handleDemoSim}
-              style={{
-                background: 'none', border: 'none', color: '#4B5563', fontSize: 13,
-                cursor: 'pointer', textDecoration: 'underline',
-              }}
-            >
-              View demo trace (expense management)
-            </button>
-          </div>
         </div>
 
         {/* Results panel */}

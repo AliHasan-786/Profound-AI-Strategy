@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 const MODEL_COLORS = {
-  'gpt-4o': { bg: 'rgba(34,197,94,0.1)', text: '#22C55E' },
-  'claude-3-5-sonnet': { bg: 'rgba(139,92,246,0.1)', text: '#8B5CF6' },
+  'gpt-4o': { bg: 'rgba(34,197,94,0.1)', text: '#22C55E', label: 'GPT-4o Mini' },
+  'claude-3-5-sonnet': { bg: 'rgba(139,92,246,0.1)', text: '#8B5CF6', label: 'Claude Haiku' },
 };
 
 const PROMPT_TYPE_COLORS = {
@@ -12,17 +12,24 @@ const PROMPT_TYPE_COLORS = {
   problem_first: '#22C55E',
 };
 
-function highlightBrands(text, brands) {
+function highlightBrands(text, brands, primaryBrand) {
   if (!brands?.length) return text;
   const regex = new RegExp(`(${brands.map((b) => b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
   const parts = text.split(regex);
-  return parts.map((part, i) =>
-    regex.test(part) ? (
-      <mark key={i} style={{ background: 'rgba(245,158,11,0.2)', color: '#F59E0B', borderRadius: 2, padding: '0 2px' }}>
+  return parts.map((part, i) => {
+    if (!regex.test(part)) return part;
+    const isPrimary = primaryBrand && part.toLowerCase() === primaryBrand.toLowerCase();
+    return (
+      <mark key={i} style={{
+        background: isPrimary ? 'rgba(59,130,246,0.18)' : 'rgba(100,116,139,0.15)',
+        color: isPrimary ? '#93C5FD' : '#94A3B8',
+        borderRadius: 2, padding: '0 2px',
+        fontWeight: isPrimary ? 600 : 400,
+      }}>
         {part}
       </mark>
-    ) : part
-  );
+    );
+  });
 }
 
 export default function ResponseExplorer({ responses, brandName }) {
@@ -35,7 +42,7 @@ export default function ResponseExplorer({ responses, brandName }) {
       <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 16, marginBottom: 16 }}>
         Response Explorer
         <span style={{ marginLeft: 10, fontSize: 13, color: '#4B5563', fontWeight: 400 }}>
-          Brand mentions highlighted in amber
+          Primary brand highlighted in <span style={{ color: '#93C5FD' }}>blue</span> · competitors in gray
         </span>
       </div>
 
@@ -58,13 +65,13 @@ export default function ResponseExplorer({ responses, brandName }) {
                 }}
               >
                 <span style={{ fontSize: 10, fontWeight: 700, background: model.bg, color: model.text, padding: '2px 7px', borderRadius: 4, flexShrink: 0 }}>
-                  {r.model === 'gpt-4o' ? 'GPT-4o' : 'Claude'}
+                  {model.label || r.model}
                 </span>
                 <span style={{
                   width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                   background: r.brand_mentioned ? '#22C55E' : '#334155',
                 }} />
-                <span style={{ fontSize: 13, color: '#94A3B8', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 13, color: '#CBD5E1', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {r.prompt_text}
                 </span>
                 <span style={{
@@ -80,16 +87,17 @@ export default function ResponseExplorer({ responses, brandName }) {
               {/* Expanded response */}
               {isOpen && (
                 <div style={{ padding: '14px 16px', background: '#0F172A' }}>
-                  <div style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.7 }}>
-                    {highlightBrands(r.response_text, brands)}
+                  <div style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 1.7 }}>
+                    {highlightBrands(r.response_text, brands, brandName)}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                     {brands.map((b) => (
                       <span key={b} style={{
                         fontSize: 11, padding: '2px 8px', borderRadius: 4,
-                        background: b === brandName ? 'rgba(245,158,11,0.15)' : 'rgba(59,130,246,0.1)',
-                        color: b === brandName ? '#F59E0B' : '#3B82F6',
-                      }}>{b}</span>
+                        background: b === brandName ? 'rgba(59,130,246,0.15)' : 'rgba(100,116,139,0.12)',
+                        color: b === brandName ? '#93C5FD' : '#94A3B8',
+                        fontWeight: b === brandName ? 600 : 400,
+                      }}>{b}{b === brandName ? ' ★' : ''}</span>
                     ))}
                   </div>
                 </div>

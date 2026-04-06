@@ -6,6 +6,7 @@ import VisibilityTab from '../components/analysis/VisibilityTab';
 import CompetitiveTab from '../components/analysis/CompetitiveTab';
 import SentimentTab from '../components/analysis/SentimentTab';
 import ResponseExplorer from '../components/analysis/ResponseExplorer';
+import MethodologyTab from '../components/analysis/MethodologyTab';
 import LoadingState from '../components/shared/LoadingState';
 import ErrorState from '../components/shared/ErrorState';
 import EmptyState from '../components/shared/EmptyState';
@@ -19,6 +20,7 @@ const TABS = [
   { id: 'competitive', label: 'Competitive' },
   { id: 'sentiment', label: 'Sentiment' },
   { id: 'responses', label: 'Responses' },
+  { id: 'methodology', label: 'Methodology' },
 ];
 
 function adaptDemoData(demo) {
@@ -235,6 +237,7 @@ export default function AnalysisPage() {
               brandName={results.run?.brand_name}
             />
           )}
+          {activeTab === 'methodology' && <MethodologyTab results={results} />}
         </div>
       )}
     </div>
