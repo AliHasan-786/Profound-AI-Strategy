@@ -11,47 +11,6 @@ export default function CaseStudyPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
-        {/* What is Profound + how this differs */}
-        <Section>
-          <SectionLabel>Context: What Profound Does — and What AEO Studio Is</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-            <CompareCard
-              title="Profound (the company)"
-              color="#8B5CF6"
-              items={[
-                'Enterprise consulting firm — sells ongoing AEO as a service',
-                'Runs proprietary prompt audits across 10+ AI platforms monthly',
-                'Builds "citation programs": gets clients cited in Wikipedia, authoritative directories, and high-traffic editorial sources that LLMs train on',
-                'Monitors AI mention drift month-over-month and issues strategic briefs',
-                'Charges $15k–$50k+ annually per enterprise client',
-                'Competes with: Goodie AI, Scrunch AI, Kalicube Pro',
-              ]}
-            />
-            <CompareCard
-              title="AEO Studio (this tool)"
-              color="#3B82F6"
-              items={[
-                'Self-serve open-source measurement tool — anyone can run it',
-                'Runs 120 structured prompts across GPT-4o Mini + Claude Haiku',
-                'Surfaces competitive gaps with SQL analytics (share-of-voice, co-mention matrix, cross-model discrepancy)',
-                'One-time snapshot with PDF export — not ongoing monitoring',
-                'Includes Agent Engine Optimization (AEO 2.0) simulation module',
-                'Free to run locally; ~$0.15–0.40 per full analysis in API costs',
-              ]}
-            />
-          </div>
-          <div style={{
-            background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)',
-            borderRadius: 8, padding: '14px 18px', fontSize: 13, color: '#94A3B8', lineHeight: 1.65,
-          }}>
-            <strong style={{ color: '#F1F5F9' }}>The positioning: </strong>
-            Profound does the optimization. AEO Studio measures whether it's working.
-            This is the measurement layer that any AEO strategy needs but that doesn't exist as a self-serve product.
-            It's the "Google Analytics" to Profound's "SEO agency" — and it demonstrates deep familiarity
-            with both the methodology Profound uses and the technical infrastructure required to execute it.
-          </div>
-        </Section>
-
         {/* Executive Summary */}
         <Section>
           <SectionLabel>Executive Summary</SectionLabel>
@@ -450,22 +409,6 @@ function Row({ label, value, color }) {
     <div style={{ display: 'flex', gap: 12, fontSize: 13 }}>
       <span style={{ color, fontWeight: 600, flexShrink: 0, width: 160 }}>{label}</span>
       <span style={{ color: '#94A3B8', lineHeight: 1.5 }}>{value}</span>
-    </div>
-  );
-}
-
-function CompareCard({ title, color, items }) {
-  return (
-    <div style={{ background: '#0F172A', border: `1px solid ${color}30`, borderRadius: 10, borderTop: `2px solid ${color}`, padding: '18px' }}>
-      <div style={{ fontWeight: 700, color: '#F1F5F9', fontSize: 13, marginBottom: 14 }}>{title}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {items.map((item, i) => (
-          <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: '#94A3B8', lineHeight: 1.45 }}>
-            <span style={{ color, flexShrink: 0 }}>·</span>
-            {item}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
