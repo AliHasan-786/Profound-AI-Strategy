@@ -3,13 +3,42 @@ import PageHeader from '../components/layout/PageHeader';
 import AgentSimSetup from '../components/agent/AgentSimSetup';
 import DecisionTrace from '../components/agent/DecisionTrace';
 import AgentReadinessScore from '../components/agent/AgentReadinessScore';
-import { DEMO_RESULTS } from '../demoData';
+import { DEMO_AGENT_SIM } from '../demoData';
 
 export default function AgentSimPage() {
   const [result, setResult] = useState(null);
   const [showDemo, setShowDemo] = useState(false);
 
-  const activeResult = showDemo ? buildDemoResult() : result;
+  const activeResult = showDemo ? null : result;
+
+  const handleDemoSim = () => {
+    const demoResult = {
+      brandName: DEMO_AGENT_SIM.brandName,
+      trace: {
+        steps: DEMO_AGENT_SIM.decisionTrace.map(step => ({
+          step: step.step,
+          action: step.action,
+          brandsConsidered: step.brandsConsidered,
+          eliminated: step.eliminated.map(e => e.brand),
+          reason: step.eliminated.map(e => e.reason).join(' ') || step.analysis || '',
+        })),
+        finalSelection: DEMO_AGENT_SIM.finalSelection,
+        primaryBrandConsidered: true,
+        primaryBrandSelected: DEMO_AGENT_SIM.brandSelected,
+        primaryBrandEliminatedAtStep: null,
+      },
+      readinessScores: DEMO_AGENT_SIM.agentReadinessCriteria.map(c => ({
+        id: c.criterion.toLowerCase().replace(/\s+/g, '_'),
+        label: c.criterion,
+        description: c.note,
+        status: c.score >= 4 ? 'present' : c.score >= 2 ? 'partial' : c.score === 0 ? 'missing' : 'manual_check',
+        note: c.note,
+      })),
+      rawResponse: DEMO_AGENT_SIM.selectionReason,
+    };
+    setResult(demoResult);
+    setShowDemo(false);
+  };
 
   return (
     <div>
@@ -49,13 +78,13 @@ export default function AgentSimPage() {
 
           <div style={{ marginTop: 16, textAlign: 'center' }}>
             <button
-              onClick={() => { setShowDemo(true); setResult(null); }}
+              onClick={handleDemoSim}
               style={{
                 background: 'none', border: 'none', color: '#4B5563', fontSize: 13,
                 cursor: 'pointer', textDecoration: 'underline',
               }}
             >
-              View demo trace (hotel booking)
+              View demo trace (expense management)
             </button>
           </div>
         </div>
@@ -122,21 +151,4 @@ function RawResponse({ text }) {
       )}
     </div>
   );
-}
-
-function buildDemoResult() {
-  const sim = DEMO_RESULTS.agentSimulation;
-  return {
-    brandName: 'Marriott',
-    trace: JSON.parse(sim.decision_trace),
-    readinessScores: [
-      { id: 'schema_markup', label: 'Schema.org Markup', description: 'Product/Organization schema present', status: 'present', note: 'Marriott.com has full Organization and Hotel schema markup' },
-      { id: 'pricing_data', label: 'Real-time Pricing Signals', description: 'Current pricing accessible to AI crawlers', status: 'present', note: 'Pricing mentioned explicitly in agent evaluation' },
-      { id: 'availability', label: 'Availability Data Freshness', description: 'Stock/availability updated < 24hrs', status: 'manual_check', note: 'Manual verification required' },
-      { id: 'review_trust', label: 'Review Trust Score', description: 'Verified third-party reviews present', status: 'present', note: 'Reviews referenced in agent decision process' },
-      { id: 'checkout_integration', label: 'Checkout Integration', description: 'In-chat or API-accessible checkout', status: 'manual_check', note: 'Manual verification required' },
-      { id: 'structured_data', label: 'Structured Product Data', description: 'GTIN/SKU/EAN identifiers present', status: 'partial', note: 'Partial — room type data present but no standardized identifiers' },
-    ],
-    rawResponse: 'This is a pre-cached demo trace. Run a live simulation to see a real agent response.',
-  };
 }

@@ -1,59 +1,37 @@
 import OpenAI from 'openai';
-import Anthropic from '@anthropic-ai/sdk';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
-let openaiClient = null;
-let anthropicClient = null;
+const openrouter = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY,
+  defaultHeaders: {
+    'HTTP-Referer': process.env.APP_URL || 'https://aeo-studio.vercel.app',
+    'X-Title': 'AEO Studio',
+  },
+});
 
-function getOpenAI() {
-  if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  }
-  return openaiClient;
-}
-
-function getAnthropic() {
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  }
-  return anthropicClient;
-}
+const MODELS = {
+  'gpt-4o':             'openai/gpt-4o-mini',
+  'claude-3-5-sonnet':  'anthropic/claude-3-haiku',
+};
 
 const SYSTEM_PROMPT =
   'You are a knowledgeable assistant. Answer the following question accurately and concisely in 2-4 sentences. Do not use bullet points.';
 
-/**
- * Send a single prompt to a model and return the text response.
- * Retries once on transient errors.
- */
 export async function callModel(model, promptText, retries = 1) {
+  const modelId = MODELS[model] || MODELS['gpt-4o'];
   try {
-    if (model === 'gpt-4o') {
-      const res = await getOpenAI().chat.completions.create({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: promptText },
-        ],
-        max_tokens: 300,
-        temperature: 0.7,
-      });
-      return res.choices[0].message.content.trim();
-    }
-
-    if (model === 'claude-3-5-sonnet') {
-      const res = await getAnthropic().messages.create({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 300,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: promptText }],
-      });
-      return res.content[0].text.trim();
-    }
-
-    throw new Error(`Unknown model: ${model}`);
+    const res = await openrouter.chat.completions.create({
+      model: modelId,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: promptText },
+      ],
+      max_tokens: 400,
+      temperature: 0.7,
+    });
+    return res.choices[0].message.content.trim();
   } catch (err) {
     if (retries > 0 && isTransient(err)) {
       await sleep(2000);
@@ -65,16 +43,9 @@ export async function callModel(model, promptText, retries = 1) {
 
 function isTransient(err) {
   const msg = err?.message || '';
-  return (
-    msg.includes('rate limit') ||
-    msg.includes('timeout') ||
-    msg.includes('503') ||
-    msg.includes('529') ||
-    err?.status === 429 ||
-    err?.status === 503
-  );
+  return msg.includes('rate limit') || msg.includes('timeout') || err?.status === 429 || err?.status === 503;
 }
 
 function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
+  return new Promise(r => setTimeout(r, ms));
 }

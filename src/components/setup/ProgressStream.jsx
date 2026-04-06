@@ -125,7 +125,7 @@ export default function ProgressStream({ runId, isDemo, onComplete }) {
                 borderRadius: 4, background: MODEL_COLORS[evt.model] + '20',
                 color: MODEL_COLORS[evt.model], whiteSpace: 'nowrap', marginTop: 1,
               }}>
-                {evt.model === 'gpt-4o' ? 'GPT-4o' : 'Claude'}
+                {evt.model === 'gpt-4o' ? 'GPT-4o Mini' : 'Claude Haiku'}
               </span>
               <span style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.4 }}>
                 {evt.prompt}

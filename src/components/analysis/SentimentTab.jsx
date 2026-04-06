@@ -119,7 +119,7 @@ function QuoteCard({ response, brandName, negative }) {
           color: response.model === 'gpt-4o' ? '#22C55E' : '#8B5CF6',
           padding: '1px 8px', borderRadius: 4, fontWeight: 600, fontSize: 11,
         }}>
-          {response.model === 'gpt-4o' ? 'GPT-4o' : 'Claude'}
+          {response.model === 'gpt-4o' ? 'GPT-4o Mini' : 'Claude Haiku'}
         </span>
         <span style={{ color: '#374151' }}>"{response.prompt_text}"</span>
       </div>

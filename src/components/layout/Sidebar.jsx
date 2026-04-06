@@ -4,7 +4,7 @@ const NAV_ITEMS = [
   { path: '/', label: 'Setup', icon: '⬡', exact: true },
   { path: '/analysis', label: 'Analysis', icon: '▦' },
   { path: '/agent-sim', label: 'Agent Sim', icon: '◈', accent: true },
-  { path: '/pm-artifacts', label: 'PM Artifacts', icon: '◻' },
+  { path: '/case-study', label: 'Case Study', icon: '◻' },
 ];
 
 export default function Sidebar() {

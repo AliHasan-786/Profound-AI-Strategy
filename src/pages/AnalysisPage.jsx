@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import PageHeader from '../components/layout/PageHeader';
 import ProgressStream from '../components/setup/ProgressStream';
 import VisibilityTab from '../components/analysis/VisibilityTab';
@@ -10,6 +10,7 @@ import LoadingState from '../components/shared/LoadingState';
 import ErrorState from '../components/shared/ErrorState';
 import EmptyState from '../components/shared/EmptyState';
 import { generateAuditPDF } from '../utils/pdfExport';
+import { DEMO_DATA } from '../demoData';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -20,22 +21,88 @@ const TABS = [
   { id: 'responses', label: 'Responses' },
 ];
 
+function adaptDemoData(demo) {
+  // Map DEMO_DATA shape to the results shape the tabs consume
+  return {
+    run: {
+      brand_name: demo.summary.brand,
+      category: demo.summary.category,
+      total_prompts: demo.summary.totalPrompts,
+      status: 'complete',
+      competitors: JSON.stringify(demo.summary.competitors),
+    },
+    mentionRateByModel: demo.visibility.byModel.map(m => ({
+      model: m.model === 'GPT-4o Mini' ? 'gpt-4o' : 'claude-3-5-sonnet',
+      mention_rate_pct: m.mentionRate,
+      mentions: m.mentionCount,
+      total_prompts: m.totalPrompts,
+    })),
+    mentionRateByPromptType: demo.visibility.byPromptType.flatMap(pt => [
+      { prompt_type: pt.type.toLowerCase().replace(/-/g, '_').replace(/ /g, '_'), model: 'gpt-4o', mention_rate_pct: pt.mentionRate, total: pt.totalPrompts, mentions: pt.mentionCount },
+      { prompt_type: pt.type.toLowerCase().replace(/-/g, '_').replace(/ /g, '_'), model: 'claude-3-5-sonnet', mention_rate_pct: Math.max(0, pt.mentionRate - 4), total: pt.totalPrompts, mentions: pt.mentionCount },
+    ]),
+    competitiveShareOfVoice: demo.competitive.shareOfVoice.map(b => ({
+      brand: b.brand, pct: b.mentionRate, mentions: b.mentionCount, total: demo.summary.totalPrompts,
+    })),
+    coMentionMatrix: demo.competitive.coMentionMatrix.map(c => ({
+      competitor: c.brand, pct: parseFloat(c.pct), coMentions: c.coMentionWithRamp, total: 50,
+      byModel: [
+        { model: 'gpt-4o', pct: parseFloat(c.pct) + 5, coMentions: Math.round(c.coMentionWithRamp * 0.55), total: 25 },
+        { model: 'claude-3-5-sonnet', pct: parseFloat(c.pct) - 5, coMentions: Math.round(c.coMentionWithRamp * 0.45), total: 25 },
+      ],
+    })),
+    sentimentByBrand: demo.sentiment.distribution.map(s => ({
+      sentiment: s.sentiment.toLowerCase(), count: s.count, pct: s.pct,
+    })),
+    crossModelDiscrepancy: {
+      gpt4o: { model: 'gpt-4o', mention_rate_pct: 44, total_prompts: 60, mentions: 26 },
+      claude: { model: 'claude-3-5-sonnet', mention_rate_pct: 40, total_prompts: 60, mentions: 24 },
+      gap: 4, flagged: false,
+    },
+    sampleResponses: demo.responses.map(r => ({
+      id: r.id, response_text: r.responseText, brand_mentioned: r.brandMentioned ? 1 : 0,
+      brands_mentioned: JSON.stringify(r.brandMentioned ? ['Ramp'] : []),
+      sentiment: r.sentiment, model: r.model === 'GPT-4o Mini' ? 'gpt-4o' : 'claude-3-5-sonnet',
+      prompt_text: r.promptText, prompt_type: r.promptType.toLowerCase().replace(/-/g, '_').replace(/ /g, '_'),
+    })),
+  };
+}
+
 export default function AnalysisPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const runId = params.get('runId');
-  const isDemo = params.get('demo') === 'true';
+  const location = useLocation();
 
-  const [phase, setPhase] = useState(runId ? 'streaming' : 'empty');
-  const [results, setResults] = useState(null);
+  const demoResults = location.state?.results || (() => {
+    const stored = sessionStorage.getItem('aeo_demo_results');
+    return stored ? JSON.parse(stored) : null;
+  })();
+  const isDemo = location.state?.isDemo || !!demoResults;
+
+  const runId = location.state?.runId || params.get('runId');
+
+  const [phase, setPhase] = useState(() => {
+    if (isDemo && demoResults) return 'results';
+    if (runId) return 'streaming';
+    return 'empty';
+  });
+  const [results, setResults] = useState(() => {
+    if (isDemo && demoResults) return adaptDemoData(demoResults);
+    return null;
+  });
   const [activeTab, setActiveTab] = useState('visibility');
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
 
-  // If demo, skip streaming immediately
   useEffect(() => {
-    if (isDemo && runId) {
-      handleStreamComplete(runId);
+    if (isDemo && demoResults) {
+      setResults(adaptDemoData(demoResults));
+      setPhase('results');
+      return;
+    }
+
+    if (runId && !isDemo) {
+      // Normal streaming flow — nothing extra needed, ProgressStream handles it
     }
   }, []);
 
@@ -67,7 +134,7 @@ export default function AnalysisPage() {
     }
   }
 
-  if (!runId) {
+  if (!runId && !isDemo) {
     return (
       <div>
         <PageHeader title="Analysis" subtitle="Run an analysis from the Setup page" />
@@ -93,7 +160,7 @@ export default function AnalysisPage() {
         title={results ? `${results.run?.brand_name || 'Analysis'} — AI Visibility Report` : 'Running Analysis...'}
         subtitle={results ? `${results.run?.category} · ${results.run?.total_prompts} prompts` : null}
         action={
-          results && (
+          results && !isDemo && (
             <button
               onClick={handleExportPDF}
               disabled={exporting}
@@ -103,7 +170,7 @@ export default function AnalysisPage() {
                 display: 'flex', alignItems: 'center', gap: 8,
               }}
             >
-              {exporting ? '⏳ Exporting...' : '↓ Export PDF'}
+              {exporting ? 'Exporting...' : 'Export PDF'}
             </button>
           )
         }
@@ -113,7 +180,7 @@ export default function AnalysisPage() {
       {phase === 'streaming' && !isDemo && (
         <div>
           <div style={{ marginBottom: 24, fontSize: 14, color: '#4B5563' }}>
-            Sending prompts to GPT-4o and Claude. This takes ~90 seconds.
+            Sending prompts to GPT-4o Mini and Claude Haiku. This takes ~90 seconds.
           </div>
           <ProgressStream runId={runId} isDemo={false} onComplete={handleStreamComplete} />
         </div>
@@ -145,6 +212,18 @@ export default function AnalysisPage() {
               </button>
             ))}
           </div>
+
+          {/* Model disclosure banner */}
+          {isDemo && (
+            <div style={{
+              fontSize: 12, color: '#4B5563', border: '1px solid #1F2937',
+              borderRadius: 6, padding: '6px 12px', marginBottom: 16, display: 'inline-block',
+            }}>
+              Demo uses <strong style={{ color: '#94A3B8' }}>GPT-4o Mini</strong> and{' '}
+              <strong style={{ color: '#94A3B8' }}>Claude Haiku</strong> for cost efficiency.
+              Production deployments use GPT-4o and Claude Sonnet for higher accuracy.
+            </div>
+          )}
 
           {/* Tab content */}
           {activeTab === 'visibility' && <VisibilityTab results={results} />}

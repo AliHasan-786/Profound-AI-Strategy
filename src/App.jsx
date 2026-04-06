@@ -3,7 +3,7 @@ import Sidebar from './components/layout/Sidebar';
 import HomePage from './pages/HomePage';
 import AnalysisPage from './pages/AnalysisPage';
 import AgentSimPage from './pages/AgentSimPage';
-import PMPage from './pages/PMPage';
+import CaseStudyPage from './pages/CaseStudyPage';
 
 export default function App() {
   return (
@@ -15,7 +15,7 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/analysis" element={<AnalysisPage />} />
             <Route path="/agent-sim" element={<AgentSimPage />} />
-            <Route path="/pm-artifacts" element={<PMPage />} />
+            <Route path="/case-study" element={<CaseStudyPage />} />
           </Routes>
         </main>
       </div>

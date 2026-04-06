@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { DEMO_DATA, DEMO_RUN_ID } from '../../demoData';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -21,21 +22,24 @@ export default function BrandSetupForm() {
     setForm((f) => ({ ...f, competitors: c }));
   }
 
-  async function handleSubmit(e, useDemo = false) {
+  function handleDemo() {
+    sessionStorage.setItem('aeo_demo_results', JSON.stringify(DEMO_DATA));
+    navigate('/analysis', { state: { results: DEMO_DATA, isDemo: true, runId: DEMO_RUN_ID } });
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (!isValid && !useDemo) return;
+    if (!isValid) return;
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const body = useDemo
-        ? { brandName: 'Ramp', category: 'corporate expense management', competitors: ['Brex', 'Expensify'], useDemo: true }
-        : {
-            brandName: form.brandName.trim(),
-            category: form.category.trim(),
-            competitors: form.competitors.map((c) => c.trim()).filter(Boolean),
-            useDemo: false,
-          };
+      const body = {
+        brandName: form.brandName.trim(),
+        category: form.category.trim(),
+        competitors: form.competitors.map((c) => c.trim()).filter(Boolean),
+        useDemo: false,
+      };
 
       const res = await fetch(`${API}/api/analysis/run`, {
         method: 'POST',
@@ -45,7 +49,7 @@ export default function BrandSetupForm() {
 
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      navigate(`/analysis?runId=${data.runId}&demo=${useDemo ? 'true' : 'false'}`);
+      navigate(`/analysis?runId=${data.runId}`);
     } catch (err) {
       setError(err.message || 'Failed to start analysis');
     } finally {
@@ -55,34 +59,29 @@ export default function BrandSetupForm() {
 
   return (
     <div style={{ maxWidth: 600 }}>
-      {/* Demo banner */}
-      <div style={{
-        background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)',
-        borderRadius: 10, padding: '14px 18px', marginBottom: 28,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-      }}>
-        <div>
-          <div style={{ fontWeight: 600, color: '#F59E0B', fontSize: 13, marginBottom: 2 }}>
-            No API keys? Try the demo
-          </div>
-          <div style={{ fontSize: 12, color: '#6B7280' }}>
-            Pre-cached Ramp vs Brex vs Expensify — full results, no API calls
-          </div>
-        </div>
-        <button
-          onClick={(e) => handleSubmit(e, true)}
-          disabled={isSubmitting}
-          style={{
-            background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)',
-            color: '#F59E0B', borderRadius: 8, padding: '8px 16px', fontSize: 13,
-            fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-          }}
-        >
-          View Demo →
-        </button>
+      {/* Primary demo CTA */}
+      <button
+        onClick={handleDemo}
+        style={{
+          width: '100%', background: '#F1F5F9', border: 'none', color: '#0F172A',
+          borderRadius: 10, padding: '16px 0', fontSize: 16, fontWeight: 700,
+          cursor: 'pointer', marginBottom: 8,
+        }}
+      >
+        Try Demo — Ramp vs Brex vs Expensify
+      </button>
+      <div style={{ fontSize: 12, color: '#6B7280', textAlign: 'center', marginBottom: 28 }}>
+        See Ramp vs Brex vs Expensify — no API key needed
       </div>
 
-      <form onSubmit={(e) => handleSubmit(e, false)}>
+      {/* Divider */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+        <div style={{ flex: 1, height: 1, background: '#1F2937' }} />
+        <span style={{ fontSize: 12, color: '#4B5563', whiteSpace: 'nowrap' }}>or run your own analysis</span>
+        <div style={{ flex: 1, height: 1, background: '#1F2937' }} />
+      </div>
+
+      <form onSubmit={handleSubmit}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <Field
             label="Brand Name *"
@@ -124,10 +123,11 @@ export default function BrandSetupForm() {
             type="submit"
             disabled={!isValid || isSubmitting}
             style={{
-              background: isValid ? '#3B82F6' : '#1E293B',
-              border: 'none', color: isValid ? '#fff' : '#4B5563',
+              background: 'transparent',
+              border: isValid ? '1px solid #3B82F6' : '1px solid #334155',
+              color: isValid ? '#3B82F6' : '#4B5563',
               borderRadius: 10, padding: '13px 0', fontSize: 15, fontWeight: 600,
-              cursor: isValid ? 'pointer' : 'not-allowed', transition: 'background 0.2s',
+              cursor: isValid ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
               width: '100%',
             }}
           >
@@ -135,7 +135,7 @@ export default function BrandSetupForm() {
           </button>
 
           <div style={{ fontSize: 12, color: '#374151', textAlign: 'center' }}>
-            Sends ~100 prompts to GPT-4o and Claude · ~90 seconds · ~$0.40 in API costs
+            Sends ~100 prompts to GPT-4o Mini and Claude Haiku · ~90 seconds · ~$0.10 in API costs
           </div>
         </div>
       </form>

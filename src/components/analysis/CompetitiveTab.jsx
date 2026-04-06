@@ -103,8 +103,8 @@ export default function CompetitiveTab({ results }) {
                 <th style={{ textAlign: 'left', padding: '8px 12px', color: '#4B5563', fontSize: 12, fontWeight: 600 }}>
                   When AI mentions...
                 </th>
-                <th style={{ textAlign: 'center', padding: '8px 12px', color: '#22C55E', fontSize: 12, fontWeight: 600 }}>GPT-4o</th>
-                <th style={{ textAlign: 'center', padding: '8px 12px', color: '#8B5CF6', fontSize: 12, fontWeight: 600 }}>Claude</th>
+                <th style={{ textAlign: 'center', padding: '8px 12px', color: '#22C55E', fontSize: 12, fontWeight: 600 }}>GPT-4o Mini</th>
+                <th style={{ textAlign: 'center', padding: '8px 12px', color: '#8B5CF6', fontSize: 12, fontWeight: 600 }}>Claude Haiku</th>
                 <th style={{ textAlign: 'center', padding: '8px 12px', color: '#4B5563', fontSize: 12, fontWeight: 600 }}>Overall</th>
               </tr>
             </thead>

@@ -30,8 +30,8 @@ export default function VisibilityTab({ results }) {
     const claude = mentionRateByPromptType.find((r) => r.prompt_type === type && r.model === 'claude-3-5-sonnet');
     return {
       name: PROMPT_TYPE_LABELS[type],
-      'GPT-4o': gpt?.mention_rate_pct || 0,
-      Claude: claude?.mention_rate_pct || 0,
+      'GPT-4o Mini': gpt?.mention_rate_pct || 0,
+      'Claude Haiku': claude?.mention_rate_pct || 0,
     };
   });
 
@@ -49,18 +49,18 @@ export default function VisibilityTab({ results }) {
           tooltip={`${brandName} appears in ${overallRate}% of all prompts tested. Brands above 50% typically appear in authoritative industry lists and have active Reddit thread coverage.`}
         />
         <MetricCard
-          label="GPT-4o Mention Rate"
+          label="GPT-4o Mini Mention Rate"
           value={`${gptRate}%`}
           subtext={`${mentionRateByModel.find((m) => m.model === 'gpt-4o')?.mentions || 0} / ${mentionRateByModel.find((m) => m.model === 'gpt-4o')?.total_prompts || 0} prompts`}
           color="#22C55E"
-          tooltip={`OpenAI's GPT-4o mentions ${brandName} in ${gptRate}% of queries. This reflects how well your brand is represented in OpenAI's training data and RLHF alignment.`}
+          tooltip={`OpenAI's GPT-4o Mini mentions ${brandName} in ${gptRate}% of queries. This reflects how well your brand is represented in OpenAI's training data and RLHF alignment.`}
         />
         <MetricCard
-          label="Claude Mention Rate"
+          label="Claude Haiku Mention Rate"
           value={`${claudeRate}%`}
           subtext={`${mentionRateByModel.find((m) => m.model === 'claude-3-5-sonnet')?.mentions || 0} / ${mentionRateByModel.find((m) => m.model === 'claude-3-5-sonnet')?.total_prompts || 0} prompts`}
           color="#8B5CF6"
-          tooltip={`Anthropic's Claude mentions ${brandName} in ${claudeRate}% of queries. Differences from GPT-4o indicate model-specific training data gaps.`}
+          tooltip={`Anthropic's Claude Haiku mentions ${brandName} in ${claudeRate}% of queries. Differences from GPT-4o Mini indicate model-specific training data gaps.`}
         />
       </div>
 
@@ -77,7 +77,7 @@ export default function VisibilityTab({ results }) {
               Cross-Model Discrepancy Detected ({crossModelDiscrepancy.gap}pt gap)
             </div>
             <div style={{ fontSize: 13, color: '#6B7280', marginTop: 2 }}>
-              GPT-4o ({gptRate}%) and Claude ({claudeRate}%) differ by more than 15 points.
+              GPT-4o Mini ({gptRate}%) and Claude Haiku ({claudeRate}%) differ by more than 15 points.
               This signals inconsistent brand entity recognition across training corpora — likely fixable with structured data and more consistent brand mentions in high-citation sources.
             </div>
           </div>
@@ -103,8 +103,8 @@ export default function VisibilityTab({ results }) {
               formatter={(val, name) => [`${val}%`, name]}
             />
             <Legend wrapperStyle={{ color: '#94A3B8', fontSize: 13 }} />
-            <Bar dataKey="GPT-4o" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Claude" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="GPT-4o Mini" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Claude Haiku" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
