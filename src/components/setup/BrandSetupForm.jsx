@@ -51,7 +51,11 @@ export default function BrandSetupForm() {
       const data = await res.json();
       navigate(`/analysis?runId=${data.runId}`);
     } catch (err) {
-      setError(err.message || 'Failed to start analysis');
+      const isFetchError = !err.message || err.message.toLowerCase().includes('fetch') || err.message.toLowerCase().includes('network');
+      setError(isFetchError
+        ? 'Backend server is not running. Use the demo button above to explore the full analysis — no setup needed.'
+        : err.message
+      );
     } finally {
       setIsSubmitting(false);
     }

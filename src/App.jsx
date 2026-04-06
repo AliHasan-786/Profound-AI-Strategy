@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
 import HomePage from './pages/HomePage';
 import AnalysisPage from './pages/AnalysisPage';
@@ -16,6 +16,7 @@ export default function App() {
             <Route path="/analysis" element={<AnalysisPage />} />
             <Route path="/agent-sim" element={<AgentSimPage />} />
             <Route path="/case-study" element={<CaseStudyPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>

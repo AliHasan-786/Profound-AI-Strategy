@@ -73,7 +73,7 @@ export default function AgentReadinessScore({ scores, brandName }) {
                   </span>
                 </div>
                 <div style={{ fontSize: 12, color: '#4B5563' }}>{criterion.description}</div>
-                {criterion.note && criterion.note !== 'Manual verification required' && (
+                {criterion.note && criterion.note !== criterion.description && criterion.note !== 'Manual verification required' && (
                   <div style={{ fontSize: 12, color: '#6B7280', marginTop: 4, fontStyle: 'italic' }}>
                     {criterion.note}
                   </div>
