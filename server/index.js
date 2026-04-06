@@ -11,7 +11,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:4173'] }));
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
+  : ['http://localhost:5173', 'http://localhost:4173'];
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 // Initialize DB on startup
