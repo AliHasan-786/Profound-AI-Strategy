@@ -1,3 +1,5 @@
+import { callModel } from './llmClient.js';
+
 const POSITIVE_SIGNALS = [
   'excellent', 'highly recommend', 'great', 'best', 'leading', 'top', 'love',
   'loved', 'impressive', 'strong', 'outstanding', 'exceptional', 'fantastic',
@@ -92,4 +94,76 @@ export function parseResponse(responseText, primaryBrand, allBrands) {
     sentiment,
     sentiment_excerpt,
   };
+}
+
+/**
+ * LLM-based theme classification across a batch of brand-mentioned responses.
+ *
+ * Takes up to 20 responses where brand_mentioned = 1, sends them to Claude Haiku
+ * in a single call, and returns theme + funnel stage distributions.
+ *
+ * @param {Array<{response_text: string}>} responses - Filtered to brand-mentioned only
+ * @param {string} brandName
+ * @returns {Promise<{themeDistribution: object, funnelDistribution: object, classifications: Array, responseCount: number} | null>}
+ */
+export async function classifyThemesWithLLM(responses, brandName) {
+  // Cap at 20 to keep the prompt within token budget
+  const sample = responses.slice(0, 20);
+  const n = sample.length;
+
+  if (n === 0) return null;
+
+  const classificationPrompt = `You are analyzing how AI systems discuss a brand. Below are ${n} AI responses that mention "${brandName}".
+
+For each response, classify:
+1. buying_funnel_stage: "awareness" | "consideration" | "decision"
+2. primary_theme: one of ["cost_value", "feature_comparison", "social_proof", "problem_solution", "category_leader", "alternative"]
+3. sentiment_confidence: "high" | "medium" | "low"
+
+Responses:
+${sample.map((r, i) => `[${i + 1}] ${r.response_text.slice(0, 300)}`).join('\n\n')}
+
+Return a JSON array with ${n} objects: [{buying_funnel_stage, primary_theme, sentiment_confidence}]
+Only return the JSON array, no other text.`;
+
+  try {
+    const raw = await callModel('claude-3-5-sonnet', classificationPrompt);
+
+    // Strip any markdown code fences the model might add
+    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const classifications = JSON.parse(cleaned);
+
+    if (!Array.isArray(classifications)) return null;
+
+    // Aggregate theme distribution
+    const themeDistribution = {
+      cost_value: 0,
+      feature_comparison: 0,
+      social_proof: 0,
+      problem_solution: 0,
+      category_leader: 0,
+      alternative: 0,
+    };
+    const funnelDistribution = { awareness: 0, consideration: 0, decision: 0 };
+
+    for (const cls of classifications) {
+      if (cls.primary_theme && themeDistribution.hasOwnProperty(cls.primary_theme)) {
+        themeDistribution[cls.primary_theme]++;
+      }
+      if (cls.buying_funnel_stage && funnelDistribution.hasOwnProperty(cls.buying_funnel_stage)) {
+        funnelDistribution[cls.buying_funnel_stage]++;
+      }
+    }
+
+    return {
+      themeDistribution,
+      funnelDistribution,
+      classifications,
+      responseCount: n,
+    };
+  } catch (err) {
+    // Classification is additive — never break the analysis run
+    console.error('[classifyThemesWithLLM] Failed silently:', err.message);
+    return null;
+  }
 }

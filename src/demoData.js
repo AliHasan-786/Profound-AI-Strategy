@@ -45,7 +45,6 @@ export const DEMO_COMPETITIVE = {
   coMentionMatrix: [
     { brand: 'Brex', coMentionWithRamp: 34, pct: '68%', context: 'Brex vs Ramp comparisons' },
     { brand: 'Expensify', coMentionWithRamp: 18, pct: '36%', context: 'SMB alternatives discussion' },
-    { brand: 'Mercury', coMentionWithRamp: 7, pct: '14%', context: 'Startup fintech stack discussions' },
   ],
   modelDiscrepancy: [
     { metric: 'Overall mention rate', gpt: '44%', claude: '40%', delta: '4 pts', flag: false },
@@ -57,8 +56,8 @@ export const DEMO_COMPETITIVE = {
 
 export const DEMO_SENTIMENT = {
   distribution: [
-    { sentiment: 'Positive', count: 32, pct: 64, color: '#22C55E' },
-    { sentiment: 'Neutral', count: 14, pct: 28, color: '#94A3B8' },
+    { sentiment: 'Positive', count: 31, pct: 61, color: '#22C55E' },
+    { sentiment: 'Neutral', count: 16, pct: 31, color: '#94A3B8' },
     { sentiment: 'Negative', count: 4, pct: 8, color: '#EF4444' },
   ],
   representativeQuotes: [
@@ -87,7 +86,7 @@ export const DEMO_SENTIMENT = {
       promptType: 'Brand-Named',
     },
   ],
-  keyInsight: '64% positive sentiment — strong brand health in AI responses. Main negative driver: customer support and travel features. Address with updated schema markup and review signals.',
+  keyInsight: '61% positive sentiment — generally healthy brand signal in AI responses. Main negative driver: customer support and travel features. Address with updated schema markup and review signals.',
 };
 
 export const DEMO_RESPONSES = [
@@ -97,7 +96,7 @@ export const DEMO_RESPONSES = [
     promptType: 'Category-General',
     model: 'GPT-4o Mini',
     brandMentioned: true,
-    responseText: "For a 50-person startup, several tools stand out in the corporate expense management space. Ramp has become increasingly popular for its zero-fee model and automated savings features — it analyzes your spending patterns and proactively identifies savings opportunities. Brex is another strong contender, particularly if you need higher credit limits and advanced travel capabilities. For teams already embedded in accounting software like QuickBooks, Expensify remains a solid choice due to its deep integrations. If budget efficiency is the top priority, Ramp's cashback program typically delivers the strongest ROI for this company size.",
+    responseText: "For a 50-person startup, the right choice really depends on your priorities, but a few names come up consistently. Ramp has gained traction for its zero-fee structure and automated savings analysis — it's worth noting that the cashback and spend insights tend to resonate most with finance teams that are actively trying to reduce overhead. Brex is another option worth considering, particularly if your team travels frequently or needs higher credit limits than a newer company might qualify for elsewhere. Depending on your specific accounting setup, Expensify can also make sense if QuickBooks integration is a hard requirement. That said, I'd recommend trialing at least two of these before committing, since the onboarding experience and support quality can vary meaningfully from what the marketing pages suggest.",
     sentiment: 'positive',
   },
   {
@@ -115,7 +114,7 @@ export const DEMO_RESPONSES = [
     promptType: 'Problem-First',
     model: 'GPT-4o Mini',
     brandMentioned: false,
-    responseText: 'CFOs typically rely on a combination of ERP systems (NetSuite, SAP), spend management platforms, and corporate card solutions. For mid-market companies, Brex and Divvy are frequently cited as go-to tools for spend visibility and controls. Enterprise organizations often layer in platforms like Coupa or SAP Concur for full procurement automation. The trend in 2025 is toward unified platforms that combine corporate cards, expense management, and accounts payable into a single workflow.',
+    responseText: "CFOs typically rely on a mix of tools depending on company size and maturity — there isn't a single standard stack. At the mid-market level, spend management platforms like Brex, Divvy, or similar solutions come up frequently for real-time card controls and reporting. Larger organizations tend to layer in something like Coupa or SAP Concur, though the implementation overhead is significant and probably overkill for most companies under a few hundred employees. It's worth noting that the category has shifted somewhat in the last couple of years toward platforms that unify corporate cards, expense reimbursement, and AP automation in one place — though how well any given tool executes on that promise varies. Your best starting point is usually to map out which accounting system you're running and work backwards from there on integrations.",
     sentiment: 'neutral',
   },
   {

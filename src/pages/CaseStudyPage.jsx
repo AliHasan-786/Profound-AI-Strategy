@@ -35,22 +35,23 @@ export default function CaseStudyPage() {
           <p style={prose}>
             Traditional SEO measures Google ranking. But when ChatGPT answers "what's the best expense
             management tool for my startup?", Google rankings are irrelevant — and a brand with strong
-            SEO can be entirely invisible to AI. Research from Profound (2026) shows that up to 60%
-            of AI citations change month-over-month, making AI visibility fundamentally unstable and
-            undertracked.
+            SEO can be entirely invisible to AI. AI model updates have been shown to shift brand citation
+            patterns significantly month-over-month, making AI visibility fundamentally unstable and
+            undertracked by conventional tools.
           </p>
           <p style={{ ...prose, marginTop: 14 }}>
-            The problem compounds with autonomous agents. Gartner projects that 90% of B2B purchasing
-            decisions will involve AI intermediaries by 2028. When an AI agent selects a vendor, it
-            doesn't browse Google — it parses structured data, pricing signals, schema markup, and
-            review density. A brand that scores well on SEO but poorly on agent-legibility will be
-            invisible to the next wave of B2B commerce.
+            The problem compounds with autonomous agents. Gartner analysts project that by 2026, 30%
+            of enterprise software applications will include conversational AI interfaces — a shift
+            that moves procurement decisions increasingly toward AI intermediaries. When an agent selects
+            a vendor, it doesn't browse Google — it parses structured data, pricing signals, schema
+            markup, and review density. A brand that scores well on SEO but poorly on agent-legibility
+            will be invisible to the next wave of B2B commerce.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 20 }}>
             {[
-              { stat: '60%', label: 'of AI citations change month-over-month', source: 'Profound, 2026' },
-              { stat: '73%', label: 'of consumers already use AI in purchase journeys', source: 'Gartner, 2025' },
-              { stat: '90%', label: 'of B2B purchases will be AI-intermediated by 2028', source: 'Gartner, 2026' },
+              { stat: '65%', label: 'of organizations regularly use generative AI — up from 33% the prior year', source: 'McKinsey, 2024' },
+              { stat: '68%', label: 'of consumers expect AI to change how they search for products', source: 'Salesforce, 2024' },
+              { stat: '30%', label: 'of enterprise software will include conversational AI by 2026 (projection)', source: 'Gartner, 2024' },
             ].map(({ stat, label, source }) => (
               <div key={stat} style={{ background: '#0F172A', border: '1px solid #1F2937', borderRadius: 10, padding: '16px' }}>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#3B82F6', fontFamily: 'JetBrains Mono, monospace' }}>{stat}</div>
@@ -63,7 +64,7 @@ export default function CaseStudyPage() {
 
         {/* User Persona + Discovery */}
         <Section>
-          <SectionLabel>User Persona & Discovery</SectionLabel>
+          <SectionLabel>User Persona & Problem Space</SectionLabel>
           <p style={{ ...prose, marginBottom: 20 }}>
             The primary user is a B2B SaaS marketer or growth PM who has started noticing that ChatGPT
             doesn't mention their brand, or mentions a competitor instead. They Google "how to appear in
@@ -244,7 +245,7 @@ export default function CaseStudyPage() {
               },
               {
                 num: '04',
-                heading: '64% positive sentiment — but support and travel features are consistent negatives',
+                heading: '61% positive sentiment — but support and travel features are consistent negatives',
                 body: "Strong baseline brand health. Primary negative signals: customer support responsiveness and travel feature gaps. These are addressable without product changes — structured review responses on G2/Capterra and updated FAQ schema markup can shift the sentiment excerpt that AI surfaces.",
               },
             ].map(({ num, heading, body }) => (

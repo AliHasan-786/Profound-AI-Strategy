@@ -8,8 +8,32 @@ const SENTIMENT_COLORS = {
 
 const SENTIMENT_LABELS = { positive: 'Positive', neutral: 'Neutral', negative: 'Negative' };
 
+const THEME_LABELS = {
+  cost_value: 'Cost & Value',
+  feature_comparison: 'Feature Comparison',
+  social_proof: 'Social Proof',
+  problem_solution: 'Problem → Solution',
+  category_leader: 'Category Leader',
+  alternative: 'Alternative / Challenger',
+};
+
+const THEME_COLORS = {
+  cost_value: '#3B82F6',
+  feature_comparison: '#8B5CF6',
+  social_proof: '#22C55E',
+  problem_solution: '#F59E0B',
+  category_leader: '#06B6D4',
+  alternative: '#6B7280',
+};
+
+const FUNNEL_COLORS = {
+  awareness: '#8B5CF6',
+  consideration: '#3B82F6',
+  decision: '#22C55E',
+};
+
 export default function SentimentTab({ results }) {
-  const { sentimentByBrand, sampleResponses, run } = results;
+  const { sentimentByBrand, sampleResponses, run, themeAnalysis } = results;
   const brandName = run?.brand_name || 'Your Brand';
 
   const positive = sentimentByBrand.find((s) => s.sentiment === 'positive');
@@ -75,6 +99,97 @@ export default function SentimentTab({ results }) {
           ))}
         </div>
       </div>
+
+      {/* LLM Theme Analysis — only shown when themeAnalysis is present */}
+      {themeAnalysis && (
+        <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 12, padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 6 }}>
+            <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 16 }}>
+              Theme Analysis
+            </div>
+            <div style={{ fontSize: 12, color: '#94A3B8' }}>
+              Classified by Claude Haiku across {themeAnalysis.responseCount} brand-mentioned responses
+            </div>
+          </div>
+          <div style={{ fontSize: 13, color: '#64748B', marginBottom: 20 }}>
+            How AI systems frame {brandName} when they mention it — what narrative angle do they take?
+          </div>
+
+          {/* Theme distribution horizontal bars */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
+            {Object.entries(themeAnalysis.themeDistribution)
+              .sort((a, b) => b[1] - a[1])
+              .map(([theme, count]) => {
+                const pct = themeAnalysis.responseCount > 0
+                  ? Math.round((count / themeAnalysis.responseCount) * 100)
+                  : 0;
+                return (
+                  <div key={theme}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, color: '#CBD5E1' }}>
+                        {THEME_LABELS[theme] || theme}
+                      </span>
+                      <span style={{ fontSize: 13, color: '#94A3B8', fontVariantNumeric: 'tabular-nums' }}>
+                        {count} ({pct}%)
+                      </span>
+                    </div>
+                    <div style={{ height: 8, background: '#0F172A', borderRadius: 4, overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${pct}%`,
+                          background: THEME_COLORS[theme] || '#4B5563',
+                          borderRadius: 4,
+                          transition: 'width 0.5s ease',
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Funnel stage distribution */}
+          <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 14, marginBottom: 12 }}>
+            Buying Funnel Stage
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {Object.entries(themeAnalysis.funnelDistribution).map(([stage, count]) => {
+              const pct = themeAnalysis.responseCount > 0
+                ? Math.round((count / themeAnalysis.responseCount) * 100)
+                : 0;
+              return (
+                <div
+                  key={stage}
+                  style={{
+                    background: '#0F172A',
+                    border: `1px solid ${FUNNEL_COLORS[stage]}30`,
+                    borderRadius: 8,
+                    padding: '12px 16px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{
+                    fontSize: 22,
+                    fontWeight: 700,
+                    color: FUNNEL_COLORS[stage],
+                    fontFamily: 'monospace',
+                    marginBottom: 4,
+                  }}>
+                    {pct}%
+                  </div>
+                  <div style={{ fontSize: 12, color: '#94A3B8', textTransform: 'capitalize' }}>
+                    {stage}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#4B5563', marginTop: 2 }}>
+                    {count} responses
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Representative quotes */}
       {positiveExamples.length > 0 && (

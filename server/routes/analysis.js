@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../db.js';
 import { generatePromptBatch } from '../services/promptGenerator.js';
 import { callModel } from '../services/llmClient.js';
-import { parseResponse } from '../services/responseParser.js';
+import { parseResponse, classifyThemesWithLLM } from '../services/responseParser.js';
 import { getFullResults } from '../services/sqlAnalytics.js';
 import { DEMO_RESULTS, DEMO_RUN_ID } from '../data/demoCache.js';
 
@@ -59,6 +59,7 @@ async function runAnalysisBackground(runId, brandName, competitors, prompts) {
   const db = getDb();
   const allBrands = [brandName, ...competitors].filter(Boolean);
   let completed = 0;
+  let failed = 0;
 
   const insertPrompt = db.prepare(
     `INSERT INTO prompts (id, run_id, prompt_text, prompt_type, model) VALUES (?, ?, ?, ?, ?)`
@@ -68,7 +69,7 @@ async function runAnalysisBackground(runId, brandName, competitors, prompts) {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const updateProgress = db.prepare(
-    `UPDATE analysis_runs SET completed_prompts = ? WHERE id = ?`
+    `UPDATE analysis_runs SET completed_prompts = ?, failed_prompts = ? WHERE id = ?`
   );
 
   // Concurrency limit to stay within rate limits
@@ -93,26 +94,74 @@ async function runAnalysisBackground(runId, brandName, competitors, prompts) {
           );
 
           completed++;
-          updateProgress.run(completed, runId);
+          updateProgress.run(completed, failed, runId);
 
           broadcast(runId, {
             type: 'progress',
             completedPrompts: completed,
+            failedPrompts: failed,
             totalPrompts: prompts.length,
             currentPrompt: prompt_text,
             model,
           });
         } catch (err) {
+          failed++;
           completed++;
-          updateProgress.run(completed, runId);
+          updateProgress.run(completed, failed, runId);
           console.error(`[${model}] Error on prompt "${prompt_text}":`, err.message);
+
+          broadcast(runId, {
+            type: 'progress',
+            completedPrompts: completed,
+            failedPrompts: failed,
+            totalPrompts: prompts.length,
+            currentPrompt: prompt_text,
+            model,
+            promptFailed: true,
+          });
         }
       })
     );
   }
 
-  db.prepare(`UPDATE analysis_runs SET status = 'complete' WHERE id = ?`).run(runId);
-  broadcast(runId, { type: 'complete', runId });
+  // Determine final status: if >20% of prompts failed, mark the run as failed
+  const failureRate = failed / prompts.length;
+  const finalStatus = failureRate > 0.2 ? 'failed' : 'complete';
+  const errorMessage = finalStatus === 'failed'
+    ? `${failed} of ${prompts.length} prompts failed (${Math.round(failureRate * 100)}%). This exceeds the 20% threshold. Check API keys and rate limits.`
+    : null;
+
+  db.prepare(
+    `UPDATE analysis_runs SET status = ?, error_message = ? WHERE id = ?`
+  ).run(finalStatus, errorMessage, runId);
+
+  broadcast(runId, {
+    type: finalStatus === 'failed' ? 'failed' : 'complete',
+    runId,
+    failedPrompts: failed,
+    totalPrompts: prompts.length,
+    ...(errorMessage ? { error: errorMessage } : {}),
+  });
+
+  // Theme classification — runs after all prompts complete, only if the run succeeded
+  if (finalStatus === 'complete') {
+    try {
+      const brandMentionedResponses = db.prepare(
+        `SELECT response_text FROM responses WHERE run_id = ? AND brand_mentioned = 1 ORDER BY created_at ASC`
+      ).all(runId);
+
+      const themeAnalysis = await classifyThemesWithLLM(brandMentionedResponses, brandName);
+
+      if (themeAnalysis) {
+        db.prepare(
+          `UPDATE analysis_runs SET theme_analysis = ? WHERE id = ?`
+        ).run(JSON.stringify(themeAnalysis), runId);
+      }
+    } catch (err) {
+      // Theme classification is additive — never fail the run over it
+      console.error('[Theme classification] Failed silently:', err.message);
+    }
+  }
 
   // Close all SSE clients for this run
   const clients = sseClients.get(runId);
@@ -142,10 +191,11 @@ router.get('/:id/stream', (req, res) => {
       type: 'status',
       status: run.status,
       completedPrompts: run.completed_prompts,
+      failedPrompts: run.failed_prompts || 0,
       totalPrompts: run.total_prompts,
     })}\n\n`);
 
-    if (run.status === 'complete') {
+    if (run.status === 'complete' || run.status === 'failed') {
       res.end();
       return;
     }
@@ -163,7 +213,7 @@ router.get('/:id/stream', (req, res) => {
 // GET /api/analysis/:id/status — polling fallback
 router.get('/:id/status', (req, res) => {
   if (req.params.id === DEMO_RUN_ID) {
-    return res.json({ status: 'complete', completedPrompts: 100, totalPrompts: 100 });
+    return res.json({ status: 'complete', completedPrompts: 100, failedPrompts: 0, totalPrompts: 100 });
   }
   const db = getDb();
   const run = db.prepare(`SELECT * FROM analysis_runs WHERE id = ?`).get(req.params.id);
@@ -171,7 +221,9 @@ router.get('/:id/status', (req, res) => {
   res.json({
     status: run.status,
     completedPrompts: run.completed_prompts,
+    failedPrompts: run.failed_prompts || 0,
     totalPrompts: run.total_prompts,
+    ...(run.error_message ? { error: run.error_message } : {}),
   });
 });
 
@@ -186,6 +238,18 @@ router.get('/:id/results', (req, res) => {
 
   const competitors = JSON.parse(run.competitors || '[]');
   const results = getFullResults(req.params.id, run.brand_name, competitors);
+
+  // Attach theme analysis if available
+  if (run.theme_analysis) {
+    try {
+      results.themeAnalysis = JSON.parse(run.theme_analysis);
+    } catch (_) {
+      results.themeAnalysis = null;
+    }
+  } else {
+    results.themeAnalysis = null;
+  }
+
   res.json(results);
 });
 

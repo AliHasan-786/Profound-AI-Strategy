@@ -39,83 +39,118 @@ export function getMentionRateByPromptType(runId) {
 }
 
 /**
- * 3. Competitive share of voice — for each brand, count how many responses mention it
+ * 3. Competitive share of voice — single SQL query using json_each() to unnest
+ *    the brands_mentioned JSON array and aggregate per brand in pure SQL.
+ *    The total response count comes from a scalar subquery in the same statement.
  */
 export function getCompetitiveShareOfVoice(runId, allBrands) {
   const db = getDb();
-  const total = db
+  const brands = allBrands.filter(Boolean);
+  if (brands.length === 0) return [];
+
+  // Build a parameterised IN list — one placeholder per brand
+  const placeholders = brands.map(() => '?').join(', ');
+
+  const rows = db
+    .prepare(
+      `SELECT
+         je.value AS brand,
+         COUNT(*) AS mentions,
+         (SELECT COUNT(*) FROM responses WHERE run_id = ?) AS total,
+         ROUND(
+           100.0 * COUNT(*) / (SELECT COUNT(*) FROM responses WHERE run_id = ?),
+           1
+         ) AS pct
+       FROM responses r, json_each(r.brands_mentioned) AS je
+       WHERE r.run_id = ?
+         AND je.value IN (${placeholders})
+       GROUP BY je.value
+       ORDER BY mentions DESC`
+    )
+    // params: two subquery run_ids + outer WHERE run_id + brand list
+    .all(runId, runId, runId, ...brands);
+
+  // Ensure every brand has an entry even if it has zero mentions
+  const resultMap = new Map(rows.map((r) => [r.brand, r]));
+  const total = rows[0]?.total ?? db
     .prepare(`SELECT COUNT(*) as cnt FROM responses WHERE run_id = ?`)
     .get(runId).cnt;
 
-  return allBrands
-    .filter(Boolean)
-    .map((brand) => {
-      // SQLite JSON — check if brand appears in brands_mentioned JSON array
-      const row = db
-        .prepare(
-          `SELECT COUNT(*) as mentions
-           FROM responses
-           WHERE run_id = ?
-             AND (brands_mentioned LIKE ? OR brands_mentioned LIKE ? OR brands_mentioned LIKE ? OR brands_mentioned LIKE ?)`
-        )
-        .get(
-          runId,
-          `%"${brand}"%`,
-          `%'${brand}'%`,
-          `["${brand}"]`,
-          `%${brand}%`
-        );
-      const mentions = row?.mentions || 0;
-      return {
-        brand,
-        mentions,
-        total,
-        pct: total > 0 ? Math.round((mentions / total) * 1000) / 10 : 0,
-      };
-    })
-    .sort((a, b) => b.pct - a.pct);
+  return brands.map((brand) =>
+    resultMap.get(brand) ?? { brand, mentions: 0, total, pct: 0 }
+  );
 }
 
 /**
- * 4. Co-mention matrix
- * "When AI mentions Competitor X, how often does it also mention the primary brand?"
+ * 4. Co-mention matrix — pure SQL using json_each() and conditional aggregation.
+ *
+ *    For each competitor we run one aggregate query (EXISTS subselects on
+ *    json_each) plus one grouped-by-model variant. Total: 2 queries × N
+ *    competitors. No rows are transferred into JS memory for filtering.
+ *
+ *    "When AI mentions Competitor X, how often does it also mention the
+ *    primary brand?"
  */
 export function getCoMentionMatrix(runId, primaryBrand, competitors) {
   const db = getDb();
 
+  // Prepared once; reused per competitor
+  const overallStmt = db.prepare(
+    `SELECT
+       COUNT(*) AS total,
+       SUM(
+         CASE WHEN EXISTS (
+           SELECT 1 FROM json_each(r.brands_mentioned) je2
+           WHERE je2.value = ?
+         ) THEN 1 ELSE 0 END
+       ) AS co_mentions
+     FROM responses r
+     WHERE r.run_id = ?
+       AND EXISTS (
+         SELECT 1 FROM json_each(r.brands_mentioned) je1
+         WHERE je1.value = ?
+       )`
+  );
+
+  const byModelStmt = db.prepare(
+    `SELECT
+       r.model,
+       COUNT(*) AS total,
+       SUM(
+         CASE WHEN EXISTS (
+           SELECT 1 FROM json_each(r.brands_mentioned) je2
+           WHERE je2.value = ?
+         ) THEN 1 ELSE 0 END
+       ) AS co_mentions
+     FROM responses r
+     WHERE r.run_id = ?
+       AND r.model IN ('gpt-4o', 'claude-3-5-sonnet')
+       AND EXISTS (
+         SELECT 1 FROM json_each(r.brands_mentioned) je1
+         WHERE je1.value = ?
+       )
+     GROUP BY r.model`
+  );
+
   return competitors.filter(Boolean).map((competitor) => {
-    // Responses that mention this competitor
-    const competitorRows = db
-      .prepare(
-        `SELECT brands_mentioned FROM responses
-         WHERE run_id = ? AND brands_mentioned LIKE ?`
-      )
-      .all(runId, `%${competitor}%`);
+    // params: primaryBrand (co-mention check), runId, competitor (outer filter)
+    const overall = overallStmt.get(primaryBrand, runId, competitor);
+    const total = overall?.total ?? 0;
+    const coMentions = overall?.co_mentions ?? 0;
 
-    const total = competitorRows.length;
-    const coMentions = competitorRows.filter((r) => {
-      const brands = JSON.parse(r.brands_mentioned || '[]');
-      return brands.includes(primaryBrand);
-    }).length;
+    const modelRows = byModelStmt.all(primaryBrand, runId, competitor);
 
-    // Also split by model
     const byModel = ['gpt-4o', 'claude-3-5-sonnet'].map((model) => {
-      const modelRows = db
-        .prepare(
-          `SELECT brands_mentioned FROM responses
-           WHERE run_id = ? AND model = ? AND brands_mentioned LIKE ?`
-        )
-        .all(runId, model, `%${competitor}%`);
-      const modelTotal = modelRows.length;
-      const modelCoMentions = modelRows.filter((r) => {
-        const brands = JSON.parse(r.brands_mentioned || '[]');
-        return brands.includes(primaryBrand);
-      }).length;
+      const row = modelRows.find((r) => r.model === model);
+      const modelTotal = row?.total ?? 0;
+      const modelCoMentions = row?.co_mentions ?? 0;
       return {
         model,
         total: modelTotal,
         coMentions: modelCoMentions,
-        pct: modelTotal > 0 ? Math.round((modelCoMentions / modelTotal) * 1000) / 10 : 0,
+        pct: modelTotal > 0
+          ? Math.round((modelCoMentions / modelTotal) * 1000) / 10
+          : 0,
       };
     });
 

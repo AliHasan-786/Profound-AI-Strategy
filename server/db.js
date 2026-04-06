@@ -16,8 +16,24 @@ export function getDb() {
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
     initSchema(db);
+    runMigrations(db);
   }
   return db;
+}
+
+function runMigrations(db) {
+  // Add columns introduced after initial schema — safe to run on every startup.
+  // better-sqlite3 throws if a column already exists, so we check first.
+  const existingCols = db.pragma(`table_info(analysis_runs)`).map((c) => c.name);
+  if (!existingCols.includes('failed_prompts')) {
+    db.exec(`ALTER TABLE analysis_runs ADD COLUMN failed_prompts INTEGER DEFAULT 0`);
+  }
+  if (!existingCols.includes('error_message')) {
+    db.exec(`ALTER TABLE analysis_runs ADD COLUMN error_message TEXT`);
+  }
+  if (!existingCols.includes('theme_analysis')) {
+    db.exec(`ALTER TABLE analysis_runs ADD COLUMN theme_analysis TEXT`);
+  }
 }
 
 function initSchema(db) {
@@ -30,7 +46,10 @@ function initSchema(db) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       status TEXT DEFAULT 'running',
       total_prompts INTEGER,
-      completed_prompts INTEGER DEFAULT 0
+      completed_prompts INTEGER DEFAULT 0,
+      failed_prompts INTEGER DEFAULT 0,
+      error_message TEXT,
+      theme_analysis TEXT
     );
 
     CREATE TABLE IF NOT EXISTS prompts (

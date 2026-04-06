@@ -95,32 +95,38 @@ export function generatePrompts(brandName, category, competitors) {
     `Is ${brandName} taking market share from ${comp1}?`,
   ];
 
+  // Problem-first prompts: fully parameterized on category, brand, and competitors.
+  // No hardcoded domain assumptions — works for any category.
   const problemFirst = [
-    `How do I reduce employee expense fraud?`,
-    `How do I give employees corporate cards without losing control of spending?`,
-    `What's the best way to manage receipts for a 50-person company?`,
-    `How do finance teams automate ${category}?`,
-    `My employees are misusing corporate cards — what should I do?`,
-    `How do I get real-time visibility into company spending?`,
-    `What's the easiest way to handle employee reimbursements?`,
-    `How do I enforce spending policies automatically?`,
-    `What's the best way to track SaaS subscriptions for a startup?`,
-    `How do I reduce time spent on expense reports?`,
-    `How can a small finance team manage hundreds of employee expenses?`,
-    `What's the fastest way to close the books at month end?`,
-    `How do I stop employees from over-spending on travel?`,
+    // Generic category pain points
+    `How do I solve common problems with ${category}?`,
+    `What are the biggest challenges companies face with ${category}?`,
+    `My team is struggling with ${category} — what should we do?`,
+    `How do I evaluate ${category} vendors before committing?`,
+    `What do companies get wrong when choosing ${category} tools?`,
+    `How do I justify the cost of ${category} software to my CFO?`,
+    `What questions should I ask ${category} vendors during a demo?`,
+    `How do I migrate from our current solution to a better ${category} platform?`,
+    `What are the signs that our ${category} solution is underperforming?`,
+    `How do other companies in our industry handle ${category}?`,
+    // Evaluation and decision
     `What should a CFO look for in a ${category} platform?`,
-    `How do I improve cashback on company spending?`,
-    `What tools help automate accounting reconciliation?`,
-    `How do I give department heads budget visibility?`,
-    `What's the best way to issue virtual cards to employees?`,
-    `How do I manage multi-currency expenses for a global team?`,
-    `How do I create an approval workflow for large purchases?`,
-    `What's the easiest ${category} tool to get buy-in from employees?`,
-    `How do I avoid manual data entry for expense reports?`,
-    `What's the fastest way to set up spending limits for employees?`,
-    `How do I audit employee expenses without micromanaging?`,
-    `What tools help a startup scale its finance operations?`,
+    `How do I get buy-in from my team when switching ${category} tools?`,
+    `What's the fastest way to evaluate ${category} platforms for a growing company?`,
+    `How do I reduce vendor lock-in risk when choosing ${category} software?`,
+    `What's a realistic implementation timeline for a new ${category} platform?`,
+    // Scale and operations
+    `How do small finance teams manage ${category} without hiring more people?`,
+    `How do I automate repetitive tasks in ${category}?`,
+    `What ${category} tools work well for a 50-person team?`,
+    `How do I set up a proper workflow for ${category} across departments?`,
+    `How do I improve efficiency and reduce manual work in ${category}?`,
+    // Brand-adjacent problem prompts (naturally surface brand and competitors)
+    `What problems does ${brandName} solve better than ${comp1}?`,
+    `When does it make sense to switch from ${comp1} to ${brandName}?`,
+    `What pain points does ${brandName} address that other ${category} tools miss?`,
+    `How do I convince my team to switch from ${comp1} to a better ${category} tool?`,
+    `What are the hidden costs of sticking with an outdated ${category} solution?`,
   ];
 
   return {

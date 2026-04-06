@@ -73,12 +73,48 @@ const READINESS_CRITERIA = [
   { id: 'structured_data', label: 'Structured Product Data', description: 'GTIN/SKU/EAN identifiers + machine-readable attributes' },
 ];
 
-function parseDecisionTrace(responseText, primaryBrand) {
-  const steps = [];
-  const lines = responseText.split('\n');
+// Bug 3 fix — extract capitalized proper nouns from a block of text as a fallback
+// brand list supplement. Matches words that start with a capital letter and are
+// at least 3 characters long, excluding common sentence-starting words.
+const COMMON_SENTENCE_STARTERS = new Set([
+  'The', 'This', 'These', 'Those', 'That', 'They', 'Their', 'There',
+  'When', 'Where', 'Which', 'Who', 'What', 'Why', 'How',
+  'For', 'And', 'But', 'Not', 'Also', 'Both', 'Each', 'With',
+  'Step', 'First', 'Second', 'Third', 'Finally', 'Additionally',
+  'However', 'Therefore', 'Overall', 'Based', 'Given', 'Since',
+]);
 
-  // Match "Step N:" patterns
-  const stepPattern = /^step\s*(\d+)[:\s]/i;
+function extractProperNouns(text) {
+  const matches = text.match(/\b([A-Z][A-Za-z]{2,}(?:\s[A-Z][A-Za-z]{2,})?)\b/g) || [];
+  return [...new Set(matches.filter((w) => !COMMON_SENTENCE_STARTERS.has(w.split(' ')[0])))];
+}
+
+// Bug 4 fix helper — given a text block and a list of known brands, return the
+// last brand that appears in the text, or null.
+function findLastMentionedBrand(text, knownBrands) {
+  const lower = text.toLowerCase();
+  let lastIndex = -1;
+  let lastBrand = null;
+  for (const brand of knownBrands) {
+    const idx = lower.lastIndexOf(brand.toLowerCase());
+    if (idx > lastIndex) {
+      lastIndex = idx;
+      lastBrand = brand;
+    }
+  }
+  return lastBrand;
+}
+
+function parseDecisionTrace(responseText, primaryBrand, competitorBrands = []) {
+  // Bug 1 fix — strip markdown bold (**) and italic (*) before parsing so
+  // patterns like "**Step 1:**" become "Step 1:" and match the regex correctly.
+  const cleaned = responseText.replace(/\*\*/g, '').replace(/\*/g, '');
+
+  const steps = [];
+  const lines = cleaned.split('\n');
+
+  // Updated regex handles optional leading/trailing punctuation after stripping markdown.
+  const stepPattern = /^step\s*(\d+)[:\s.\-]/i;
   let currentStep = null;
 
   for (const line of lines) {
@@ -96,7 +132,6 @@ function parseDecisionTrace(responseText, primaryBrand) {
         reason: '',
       };
     } else if (currentStep) {
-      // Append to current step's action/reason
       if (currentStep.action.length < 100) {
         currentStep.action += ' ' + trimmed;
       } else {
@@ -107,7 +142,6 @@ function parseDecisionTrace(responseText, primaryBrand) {
 
   if (currentStep) steps.push(currentStep);
 
-  // If no structured steps found, create a single-step summary
   if (steps.length === 0) {
     steps.push({
       step: 1,
@@ -118,28 +152,40 @@ function parseDecisionTrace(responseText, primaryBrand) {
     });
   }
 
-  // Extract brand mentions from each step's text
-  const allBrandKeywords = primaryBrand ? [primaryBrand] : [];
-  const commonBrands = [
-    'Marriott', 'Hilton', 'Hyatt', 'Westin', 'Sheraton', 'Courtyard',
-    'Ramp', 'Brex', 'Expensify', 'Mercury', 'Divvy', 'Airbase',
-    'Holiday Inn', 'Four Seasons', 'Sofitel', 'Wyndham',
+  // Bug 3 fix — build a dynamic brand list from known inputs first, then
+  // supplement with proper nouns extracted from the full response as a fallback.
+  // This ensures brands the user did not pre-register (e.g. "Nintendo") are
+  // still detected if the LLM mentions them.
+  const knownBrands = [
+    ...(primaryBrand ? [primaryBrand] : []),
+    ...competitorBrands,
   ];
+  const properNounFallback = extractProperNouns(cleaned);
+  // Merge: prefer known brands, then add any proper noun not already covered.
+  const allBrands = [...knownBrands];
+  for (const noun of properNounFallback) {
+    if (!allBrands.some((b) => b.toLowerCase() === noun.toLowerCase())) {
+      allBrands.push(noun);
+    }
+  }
 
   for (const step of steps) {
-    const stepText = (step.action + ' ' + step.reason).toLowerCase();
-    const brandsFound = [...allBrandKeywords, ...commonBrands].filter(
-      (b) => b && stepText.includes(b.toLowerCase())
+    const stepText = step.action + ' ' + step.reason;
+    const stepTextLower = stepText.toLowerCase();
+
+    // brandsConsidered — use the dynamic allBrands list (Bug 3)
+    const brandsFound = allBrands.filter(
+      (b) => b && stepTextLower.includes(b.toLowerCase())
     );
     step.brandsConsidered = [...new Set(brandsFound)];
 
-    // Try to detect eliminations (look for "eliminating", "ruled out", "too expensive", etc.)
+    // Elimination detection — same regex patterns, but now working on cleaned text
     const eliminationPatterns = [
       /eliminat\w+\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/g,
       /([A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+(?:is\s+)?(?:ruled out|eliminated|excluded|too expensive|exceeds budget)/g,
     ];
     for (const pattern of eliminationPatterns) {
-      const matches = [...(step.action + ' ' + step.reason).matchAll(pattern)];
+      const matches = [...stepText.matchAll(pattern)];
       for (const m of matches) {
         if (m[1]) step.eliminated.push(m[1]);
       }
@@ -147,14 +193,32 @@ function parseDecisionTrace(responseText, primaryBrand) {
     step.eliminated = [...new Set(step.eliminated)];
   }
 
-  // Detect final selection — look for "recommend", "select", "best option" in last step
-  const lastStepText = steps[steps.length - 1];
+  // Bug 4 fix — the old regex was too broad and captured things like
+  // "selecting the most cost-effective" → "The Most Cost". New approach:
+  // 1. Run the regex but only accept the match if it overlaps with a known brand.
+  // 2. If that fails, fall back to the last brand mentioned in the final step text.
+  const selectionRegex = /(?:recommend|select(?:ing|ed)?|best option is|final (?:choice|selection|recommendation)|choosing|go with|I (?:would |will )?choose)\s*:?\s*([A-Z][A-Za-z0-9\s]{1,40}?)(?:\.|,|\n|$)/gi;
   let finalSelection = null;
-  if (lastStepText) {
-    const selectionMatch = responseText.match(
-      /(?:recommend|select|best option|final (?:choice|selection)|choosing)\s*:?\s*([A-Z][A-Za-z\s]+?)(?:\.|,|\n|$)/
+
+  const regexMatches = [...cleaned.matchAll(selectionRegex)];
+  for (const m of regexMatches) {
+    const candidate = m[1].trim();
+    // Accept only if the candidate overlaps with a known brand (case-insensitive)
+    const matchedBrand = allBrands.find((b) =>
+      candidate.toLowerCase().includes(b.toLowerCase()) ||
+      b.toLowerCase().includes(candidate.toLowerCase())
     );
-    finalSelection = selectionMatch?.[1]?.trim() || null;
+    if (matchedBrand) {
+      finalSelection = matchedBrand; // normalize to the canonical brand name
+      break;
+    }
+  }
+
+  // Fallback — take the last brand mentioned in the final step (Bug 4)
+  if (!finalSelection && steps.length > 0) {
+    const lastStep = steps[steps.length - 1];
+    const lastStepText = lastStep.action + ' ' + lastStep.reason;
+    finalSelection = findLastMentionedBrand(lastStepText, allBrands);
   }
 
   const lowerResponse = responseText.toLowerCase();
@@ -163,40 +227,105 @@ function parseDecisionTrace(responseText, primaryBrand) {
     ? lowerResponse.includes(primaryBrandLower)
     : false;
   const primaryBrandSelected =
-    primaryBrandConsidered &&
-    finalSelection
+    primaryBrandConsidered && finalSelection
       ? finalSelection.toLowerCase().includes(primaryBrandLower)
       : false;
+
+  // Bug 2 fix — scan every step's eliminated array to find the step where
+  // the primary brand was first eliminated, if ever.
+  let primaryBrandEliminatedAtStep = null;
+  if (primaryBrandLower) {
+    for (const step of steps) {
+      const wasEliminated = step.eliminated.some(
+        (e) => e.toLowerCase().includes(primaryBrandLower)
+      );
+      if (wasEliminated) {
+        primaryBrandEliminatedAtStep = step.step;
+        break;
+      }
+    }
+  }
 
   return {
     steps,
     finalSelection,
     primaryBrandConsidered,
     primaryBrandSelected,
-    primaryBrandEliminatedAtStep: null,
+    primaryBrandEliminatedAtStep,
   };
 }
 
+// Bug 5 fix — contextual readiness scoring. Instead of checking whether a
+// keyword appears anywhere in the raw response (which fires on competitor
+// mentions), we check whether the keyword appears within 100 characters of
+// the primary brand name. We also accept the keyword appearing in the same
+// sentence as the brand name as a second signal.
+function sentencesContaining(text, word) {
+  // Split on sentence-ending punctuation followed by whitespace or end-of-string.
+  return text.split(/(?<=[.!?])\s+/).filter((s) => s.toLowerCase().includes(word.toLowerCase()));
+}
+
+function keywordNearBrand(text, keyword, brandName, windowSize = 100) {
+  const lower = text.toLowerCase();
+  const kw = keyword.toLowerCase();
+  const brand = brandName.toLowerCase();
+
+  let searchFrom = 0;
+  while (true) {
+    const kwIdx = lower.indexOf(kw, searchFrom);
+    if (kwIdx === -1) break;
+    const start = Math.max(0, kwIdx - windowSize);
+    const end = Math.min(lower.length, kwIdx + kw.length + windowSize);
+    if (lower.slice(start, end).includes(brand)) return true;
+    searchFrom = kwIdx + 1;
+  }
+  return false;
+}
+
 function scoreReadiness(traceText, brandName) {
-  const lower = traceText.toLowerCase();
+  const brandLower = (brandName || '').toLowerCase();
+
   return READINESS_CRITERIA.map((criterion) => {
     let status = 'manual_check';
     let note = 'Manual verification required';
 
     if (criterion.id === 'schema_markup') {
-      if (lower.includes('schema') || lower.includes('structured data')) {
-        status = lower.includes('missing') || lower.includes('no schema') ? 'missing' : 'present';
-        note = status === 'present' ? 'Mentioned positively in agent evaluation' : 'Agent flagged as missing';
+      const keywords = ['schema', 'structured data'];
+      const contextual = keywords.some((kw) => keywordNearBrand(traceText, kw, brandName));
+      const inSentence = keywords.some((kw) =>
+        sentencesContaining(traceText, kw).some((s) => s.toLowerCase().includes(brandLower))
+      );
+      if (contextual || inSentence) {
+        const negative = keywordNearBrand(traceText, 'missing', brandName) ||
+          keywordNearBrand(traceText, 'no schema', brandName);
+        status = negative ? 'missing' : 'present';
+        note = status === 'present'
+          ? 'Mentioned positively in agent evaluation of this brand'
+          : 'Agent flagged as missing for this brand';
       }
     } else if (criterion.id === 'pricing_data') {
-      if (lower.includes('pricing') || lower.includes('price') || lower.includes('cost')) {
-        status = lower.includes('unclear') || lower.includes('no pricing') ? 'partial' : 'present';
-        note = status === 'present' ? 'Pricing referenced in agent decision' : 'Pricing data unclear to agent';
+      const keywords = ['pricing', 'price', 'cost'];
+      const contextual = keywords.some((kw) => keywordNearBrand(traceText, kw, brandName));
+      const inSentence = keywords.some((kw) =>
+        sentencesContaining(traceText, kw).some((s) => s.toLowerCase().includes(brandLower))
+      );
+      if (contextual || inSentence) {
+        const negative = keywordNearBrand(traceText, 'unclear', brandName) ||
+          keywordNearBrand(traceText, 'no pricing', brandName);
+        status = negative ? 'partial' : 'present';
+        note = status === 'present'
+          ? 'Pricing referenced for this brand in agent decision'
+          : 'Pricing data for this brand unclear to agent';
       }
     } else if (criterion.id === 'review_trust') {
-      if (lower.includes('review') || lower.includes('rating') || lower.includes('recommended')) {
+      const keywords = ['review', 'rating', 'recommended'];
+      const contextual = keywords.some((kw) => keywordNearBrand(traceText, kw, brandName));
+      const inSentence = keywords.some((kw) =>
+        sentencesContaining(traceText, kw).some((s) => s.toLowerCase().includes(brandLower))
+      );
+      if (contextual || inSentence) {
         status = 'present';
-        note = 'Reviews referenced in agent evaluation';
+        note = 'Reviews referenced for this brand in agent evaluation';
       }
     }
 
@@ -223,7 +352,13 @@ router.post('/run', async (req, res) => {
     return res.status(502).json({ error: 'LLM call failed', detail: err.message });
   }
 
-  const traceData = parseDecisionTrace(rawResponse, brandName);
+  // Pass competitor list through so parseDecisionTrace can build a dynamic
+  // brand list (Bug 3 fix) without relying on a hardcoded array.
+  const competitorBrands = Array.isArray(parameters.competitors)
+    ? parameters.competitors.filter(Boolean)
+    : [];
+
+  const traceData = parseDecisionTrace(rawResponse, brandName, competitorBrands);
   const readinessScores = scoreReadiness(rawResponse, brandName);
   const simId = uuidv4();
 
