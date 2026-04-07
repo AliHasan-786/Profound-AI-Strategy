@@ -97,6 +97,23 @@ export function parseResponse(responseText, primaryBrand, allBrands) {
 }
 
 /**
+ * Extract citation URLs from a Perplexity-style response.
+ *
+ * Perplexity includes citations as [1]: https://... blocks at the end of a
+ * response, or inline as bare URLs after numbered references. This function
+ * matches all http/https URLs in the text, deduplicates them, and filters
+ * out noise (very short strings, example.com placeholder URLs).
+ *
+ * @param {string} responseText
+ * @returns {string[]} Deduplicated array of plausible source URLs
+ */
+export function extractCitations(responseText) {
+  const urlPattern = /https?:\/\/[^\s\)\]\,\"\']+/g;
+  const urls = responseText.match(urlPattern) || [];
+  return [...new Set(urls)].filter(u => u.length > 15 && !u.includes('example.com'));
+}
+
+/**
  * LLM-based theme classification across a batch of brand-mentioned responses.
  *
  * Takes up to 20 responses where brand_mentioned = 1, sends them to Claude Haiku
@@ -107,8 +124,11 @@ export function parseResponse(responseText, primaryBrand, allBrands) {
  * @returns {Promise<{themeDistribution: object, funnelDistribution: object, classifications: Array, responseCount: number} | null>}
  */
 export async function classifyThemesWithLLM(responses, brandName) {
-  // Cap at 20 to keep the prompt within token budget
-  const sample = responses.slice(0, 20);
+  // Cap at 10 responses and truncate each to 200 chars.
+  // callModel uses max_tokens: 400. At 20 responses × 300 chars the JSON output
+  // was 800-1000+ tokens — the response was silently truncated and JSON.parse
+  // failed. 10 objects × ~30 tokens each ≈ 300 tokens, safely within budget.
+  const sample = responses.slice(0, 10);
   const n = sample.length;
 
   if (n === 0) return null;
@@ -121,7 +141,7 @@ For each response, classify:
 3. sentiment_confidence: "high" | "medium" | "low"
 
 Responses:
-${sample.map((r, i) => `[${i + 1}] ${r.response_text.slice(0, 300)}`).join('\n\n')}
+${sample.map((r, i) => `[${i + 1}] ${r.response_text.slice(0, 200)}`).join('\n\n')}
 
 Return a JSON array with ${n} objects: [{buying_funnel_stage, primary_theme, sentiment_confidence}]
 Only return the JSON array, no other text.`;

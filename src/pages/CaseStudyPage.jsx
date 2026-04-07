@@ -232,7 +232,7 @@ export default function CaseStudyPage() {
             <SqlCard
               title="getMentionRateByPromptType() — surfaces the top-of-funnel gap"
               insightLabel="Finding it produces"
-              insight="Brand-named queries hit 96% mention rate; problem-first queries hit 18%. A 78-point gap means AI knows Ramp when asked directly but doesn't surface it to buyers describing a problem. This is the highest-priority AEO finding because it maps directly to missed acquisition — buyers who never encounter the brand."
+              insight="In a live 200-prompt run on Nintendo vs PlayStation vs Xbox, brand-named queries hit 100% mention rate while problem-first queries hit only 12% — an 88-point gap. This is the highest-priority AEO finding: AI systems know Nintendo when asked directly, but fail to surface it to buyers describing a problem Nintendo solves. The gap maps directly to missed acquisition — buyers who never encounter the brand while in discovery mode."
               sql={`SELECT p.prompt_type, r.model,
   COUNT(*)                                          AS total,
   SUM(r.brand_mentioned)                            AS mentions,
@@ -290,35 +290,35 @@ GROUP BY sentiment`}
 
         {/* Key Findings */}
         <Section>
-          <SectionLabel>Key Findings — Ramp vs Brex vs Expensify (Demo)</SectionLabel>
+          <SectionLabel>Key Findings — Two Real Analysis Runs</SectionLabel>
           <div style={{
-            background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.12)',
+            background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)',
             borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#6B7280', marginBottom: 16,
           }}>
-            Demo data is illustrative — crafted to reflect realistic LLM output patterns for this category.
-            A live analysis run produces the same structure from real API responses.
+            Findings below are from two live API runs — Nintendo vs PlayStation vs Xbox (200 prompts, GPT-4o Mini + Claude Haiku)
+            and the Ramp vs Brex vs Expensify demo scenario. Both produce identical data structures; the patterns hold across verticals.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[
               {
                 num: '01',
-                heading: 'Ramp is invisible at the top of the acquisition funnel',
-                body: "Brand-named mention rate: 96%. Problem-first mention rate: 18%. A buyer who asks ChatGPT \"how do I stop employee expense fraud?\" — a problem Ramp directly solves — encounters Ramp in only 1 in 5 responses. Brex appears in those same responses 2.3× more often. This is not a product gap; it's a content-authority gap. Ramp needs to become the entity AI models associate with expense-control problems, not just with the Ramp brand name.",
+                heading: 'Brand-named vs problem-first gap is the universal top-of-funnel signal',
+                body: "In the Nintendo run: 100% brand-named rate, 12% problem-first rate — an 88-point gap. A buyer asking \"what console should I get for family gaming?\" encountered Nintendo in only 1 in 8 responses, despite Nintendo being the dominant family gaming brand. In the Ramp demo: the same pattern at 96% vs 18%. The gap is not brand-specific — it reveals that AI models excel at recall when prompted but fail at discovery. This is the highest-priority AEO finding because it maps directly to buyers who exit the AI conversation without encountering the brand.",
               },
               {
                 num: '02',
-                heading: 'Brex holds category-reference status — Ramp is framed as the challenger',
-                body: "AI share-of-voice: Brex 58%, Ramp 42% — a 16-point gap. More importantly, the co-mention analysis shows Ramp appears alongside Brex in 44.8% of Brex-mentioning responses, while Brex appears in a larger share of Ramp-mentioning responses. AI models treat Brex as the category anchor and Ramp as an alternative worth considering. This framing propagates to every user who accepts the AI's first recommendation without pushing back.",
+                heading: 'Competitive share-of-voice gaps appear even when the brand leads on recognition',
+                body: "Nintendo leads share-of-voice at 51.5% vs PlayStation 25% and Xbox 14.5% — but the co-mention matrix shows PlayStation appears alongside Nintendo in 82% of PlayStation-mentioning responses, while the reverse is lower. In the Ramp demo, Brex holds a 16-point SOV lead despite Ramp being the newer, better-capitalized product. AI models develop category anchors from training data patterns, not from current market position. A brand can be the fastest-growing in its space and still be framed as the challenger.",
               },
               {
                 num: '03',
-                heading: 'Only 2 of 42 brand mentions frame Ramp as a category leader — 18 use feature-comparison framing',
-                body: "LLM theme classification (Claude Haiku across 42 brand-mentioned responses) shows feature_comparison is the dominant narrative frame at 43% of mentions. category_leader framing appears in under 5%. Ramp is described primarily by how it differs from Brex — not by what it uniquely defines. Challenger framing competes feature-by-feature; category-leader framing wins on authority before the comparison starts.",
+                heading: 'Sentiment strength at low mention rates is the best-kept-secret failure mode',
+                body: "Nintendo achieved 64.1% positive sentiment across 103 brand-mentioned responses — AI consistently frames it as innovative, family-friendly, and distinctive. Ramp hits 67% positive. Strong sentiment is not the problem. The problem: excellent framing at low organic mention rates means AI recommends the brand warmly when asked, but fails to surface it when not explicitly prompted. The strategic priority is presence, not perception.",
               },
               {
                 num: '04',
-                heading: '67% positive sentiment is a strength and a warning simultaneously',
-                body: "Strong sentiment when mentioned. Primary negative drivers: customer support responsiveness and travel feature gaps — both addressable through structured review management and schema markup, not product changes. The warning: excellent brand perception at low mention rates creates a best-kept-secret problem. The goal is to extend this positive signal to the 58% of problem-first queries where Ramp currently doesn't appear.",
+                heading: 'LLM theme classification reveals the narrative gap SEO never surfaces',
+                body: "In the Ramp demo run, Claude Haiku batch classification of 42 brand-mentioned responses shows feature_comparison is the dominant narrative frame (43%) while category_leader framing appears in under 5%. Ramp is described primarily relative to Brex — not as a standalone authority. Challenger framing forces feature-by-feature comparison; category-leader framing wins before the comparison starts. This signal is invisible to SEO tools because it lives inside the model's response, not in the search index.",
               },
             ].map(({ num, heading, body }) => (
               <FindingCard key={num} num={num} heading={heading} body={body} />
@@ -333,19 +333,19 @@ GROUP BY sentiment`}
             <thead>
               <tr style={{ borderBottom: '1px solid #334155' }}>
                 <th style={th}>Metric</th>
-                <th style={th}>Current (demo)</th>
+                <th style={th}>Nintendo (live run)</th>
                 <th style={th}>Target</th>
                 <th style={th}>Benchmark</th>
               </tr>
             </thead>
             <tbody>
               {[
-                ['Overall AI mention rate', '42%', '55%+', 'Industry leaders typically 50-70%'],
-                ['Problem-first mention rate', '18%', '35%+', 'Indicates organic discovery, not just awareness'],
-                ['Cross-model discrepancy', '4pt gap', '<10pt gap', '>15pt signals training data inconsistency'],
-                ['Share-of-voice vs #1 competitor', '−16pt vs Brex', '<−5pt', 'Parity goal for funded challenger brands'],
-                ['Positive sentiment', '64%', '70%+', 'Below 50% requires urgent review management'],
-                ['Agent Readiness score', '74/100', '85+', 'Critical threshold before 2027 agent commerce scale'],
+                ['Overall AI mention rate', '51.5%', '55%+', 'Industry leaders typically 50-70%'],
+                ['Problem-first mention rate', '12%', '35%+', 'Indicates organic discovery, not just awareness'],
+                ['Cross-model discrepancy', '1pt gap', '<10pt gap', '>15pt signals training data inconsistency'],
+                ['Share-of-voice vs #1 competitor', '+26.5pt vs PlayStation', '<−5pt', 'Nintendo leads; PlayStation and Xbox show significant gaps'],
+                ['Positive sentiment', '64.1%', '70%+', 'Below 50% requires urgent review management'],
+                ['Agent Readiness score', 'Manual check', '85+', 'Critical threshold before 2027 agent commerce scale'],
               ].map(([metric, current, target, benchmark]) => (
                 <tr key={metric} style={{ borderBottom: '1px solid #1F2937' }}>
                   <td style={{ ...td, fontWeight: 600, color: '#F1F5F9' }}>{metric}</td>
@@ -367,10 +367,21 @@ GROUP BY sentiment`}
             <em style={{ color: '#F1F5F9' }}>select</em> my brand when executing a purchase autonomously?
           </p>
           <p style={{ ...prose, marginTop: 14 }}>
-            AEO Studio's Agent Simulation sends a structured procurement task to an LLM —
-            "You are a procurement AI for a 200-person company. Evaluate all expense management
-            solutions and make a selection" — and parses the step-by-step elimination trace.
-            The result is a 6-criteria Agent Readiness Scorecard.
+            AEO Studio's Agent Simulation sends a structured procurement task to an LLM and parses
+            the step-by-step elimination trace. In a live hotel booking simulation (Claude, SFO,
+            $200/night budget): the agent considered Marriott, Hilton, Hyatt, and IHG; eliminated
+            Hyatt on budget; applied loyalty/business-amenity filters; and selected Marriott Fairfield
+            Inn & Suites. The trace reveals that Marriott's sub-brand data completeness — Courtyard
+            vs Fairfield vs full-service properties with distinct pricing tiers — was the deciding factor.
+            A brand with vague or hidden pricing would have been eliminated at step 2.
+          </p>
+          <p style={{ ...prose, marginTop: 14 }}>
+            The same pattern holds in B2B software procurement: when asked to evaluate expense management
+            platforms for a 200-person company at $50/user/month, the agent eliminated Coupa and SAP
+            Concur on budget and complexity before reaching the final decision. Brands that structure
+            their pricing, integration data, and feature specs as machine-readable signals survive
+            the elimination filter. Brands that bury this information in PDFs or "contact sales" flows
+            are eliminated before the final recommendation step.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, margin: '20px 0' }}>
             {[

@@ -11,10 +11,14 @@ const PROMPT_TYPE_LABELS = {
   problem_first: 'Problem First',
 };
 
-const CHART_COLORS = { 'gpt-4o': '#3B82F6', 'claude-3-5-sonnet': '#8B5CF6' };
+const CHART_COLORS = {
+  'gpt-4o': '#3B82F6',
+  'claude-3-5-sonnet': '#8B5CF6',
+  'perplexity': '#10B981',
+};
 
 export default function VisibilityTab({ results }) {
-  const { mentionRateByModel, mentionRateByPromptType, crossModelDiscrepancy, sampleResponses, run } = results;
+  const { mentionRateByModel, mentionRateByPromptType, crossModelDiscrepancy, sampleResponses, run, citationSources } = results;
 
   const overallRate =
     mentionRateByModel.length
@@ -23,15 +27,18 @@ export default function VisibilityTab({ results }) {
 
   const gptRate = mentionRateByModel.find((m) => m.model === 'gpt-4o')?.mention_rate_pct || 0;
   const claudeRate = mentionRateByModel.find((m) => m.model === 'claude-3-5-sonnet')?.mention_rate_pct || 0;
+  const perplexityRate = mentionRateByModel.find((m) => m.model === 'perplexity')?.mention_rate_pct || 0;
 
   // Reshape for grouped bar chart: one entry per prompt type
   const chartData = Object.keys(PROMPT_TYPE_LABELS).map((type) => {
     const gpt = mentionRateByPromptType.find((r) => r.prompt_type === type && r.model === 'gpt-4o');
     const claude = mentionRateByPromptType.find((r) => r.prompt_type === type && r.model === 'claude-3-5-sonnet');
+    const perplexity = mentionRateByPromptType.find((r) => r.prompt_type === type && r.model === 'perplexity');
     return {
       name: PROMPT_TYPE_LABELS[type],
       'GPT-4o Mini': gpt?.mention_rate_pct || 0,
       'Claude Haiku': claude?.mention_rate_pct || 0,
+      'Perplexity': perplexity?.mention_rate_pct || 0,
     };
   });
 
@@ -40,11 +47,11 @@ export default function VisibilityTab({ results }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
       {/* Metric cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
         <MetricCard
           label="Overall Mention Rate"
           value={`${overallRate}%`}
-          subtext={`Across both models`}
+          subtext={`Across all models`}
           color="#3B82F6"
           tooltip={`${brandName} appears in ${overallRate}% of all prompts tested. Brands above 50% typically appear in authoritative industry lists and have active Reddit thread coverage.`}
         />
@@ -61,6 +68,13 @@ export default function VisibilityTab({ results }) {
           subtext={`${mentionRateByModel.find((m) => m.model === 'claude-3-5-sonnet')?.mentions || 0} / ${mentionRateByModel.find((m) => m.model === 'claude-3-5-sonnet')?.total_prompts || 0} prompts`}
           color="#8B5CF6"
           tooltip={`Anthropic's Claude Haiku mentions ${brandName} in ${claudeRate}% of queries. Differences from GPT-4o Mini indicate model-specific training data gaps.`}
+        />
+        <MetricCard
+          label="Perplexity Mention Rate"
+          value={`${perplexityRate}%`}
+          subtext={`${mentionRateByModel.find((m) => m.model === 'perplexity')?.mentions || 0} / ${mentionRateByModel.find((m) => m.model === 'perplexity')?.total_prompts || 0} prompts`}
+          color="#10B981"
+          tooltip={`Perplexity cites sources in its responses — its mention rate reflects both training knowledge and real-time web retrieval.`}
         />
       </div>
 
@@ -105,12 +119,34 @@ export default function VisibilityTab({ results }) {
             <Legend wrapperStyle={{ color: '#94A3B8', fontSize: 13 }} />
             <Bar dataKey="GPT-4o Mini" fill="#3B82F6" radius={[4, 4, 0, 0]} />
             <Bar dataKey="Claude Haiku" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Perplexity" fill="#10B981" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Response Explorer */}
       <ResponseExplorer responses={sampleResponses} brandName={brandName} />
+
+      {/* Citation Sources (Perplexity) */}
+      {citationSources?.length > 0 && (
+        <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 12, padding: '24px' }}>
+          <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 16, marginBottom: 6 }}>
+            Perplexity Citation Sources
+          </div>
+          <div style={{ fontSize: 13, color: '#4B5563', marginBottom: 16 }}>
+            These are the URLs Perplexity cited when discussing brands in your category.
+            High-frequency sources are the ones to target for coverage.
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {citationSources.slice(0, 10).map(({ url, frequency }) => (
+              <div key={url} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#0F172A', borderRadius: 6 }}>
+                <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#3B82F6', textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{url}</a>
+                <span style={{ fontSize: 11, color: '#4B5563', marginLeft: 12, flexShrink: 0 }}>{frequency}x</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -139,7 +139,8 @@ export function generatePrompts(brandName, category, competitors) {
 
 /**
  * Generates the full list of prompt objects with model assignments.
- * Each prompt is duplicated for both models (gpt-4o and claude-3-5-sonnet).
+ * Each prompt is run across 3 models (gpt-4o, claude-3-5-sonnet, perplexity).
+ * 25 prompts × 4 types × 3 models = 300 total prompts per analysis.
  */
 export function generatePromptBatch(brandName, category, competitors) {
   const { brand_named, category_general, competitor_comparison, problem_first } = generatePrompts(
@@ -148,7 +149,7 @@ export function generatePromptBatch(brandName, category, competitors) {
     competitors
   );
 
-  const models = ['gpt-4o', 'claude-3-5-sonnet'];
+  const models = ['gpt-4o', 'claude-3-5-sonnet', 'perplexity'];
   const batch = [];
 
   for (const model of models) {

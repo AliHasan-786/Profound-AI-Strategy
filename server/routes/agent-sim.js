@@ -82,11 +82,25 @@ const COMMON_SENTENCE_STARTERS = new Set([
   'For', 'And', 'But', 'Not', 'Also', 'Both', 'Each', 'With',
   'Step', 'First', 'Second', 'Third', 'Finally', 'Additionally',
   'However', 'Therefore', 'Overall', 'Based', 'Given', 'Since',
+  // Common gerunds and action verbs that start agent reasoning steps
+  'Identifying', 'Filtering', 'Applying', 'Considering', 'Evaluating',
+  'Selecting', 'Recommending', 'Narrowing', 'Looking', 'Finding',
+  'Comparing', 'Eliminating', 'Checking', 'Reviewing', 'Assessing',
+  'Focusing', 'Analyzing', 'Searching', 'Matching', 'Using',
+  'Starting', 'Moving', 'Proceeding', 'Taking', 'Making',
+  'After', 'Before', 'Within', 'Between', 'Among', 'Across',
+  'Requires', 'Meets', 'Offers', 'Provides', 'Includes',
 ]);
 
-function extractProperNouns(text) {
+function extractProperNouns(text, knownBrands = []) {
   const matches = text.match(/\b([A-Z][A-Za-z]{2,}(?:\s[A-Z][A-Za-z]{2,})?)\b/g) || [];
-  return [...new Set(matches.filter((w) => !COMMON_SENTENCE_STARTERS.has(w.split(' ')[0])))];
+  return [...new Set(matches.filter((w) => {
+    const first = w.split(' ')[0];
+    if (COMMON_SENTENCE_STARTERS.has(first)) return false;
+    // Filter 2-4 char all-caps strings (airport codes, acronyms) unless they're a known brand
+    if (/^[A-Z]{2,4}$/.test(w) && !knownBrands.some(b => b.toUpperCase() === w.toUpperCase())) return false;
+    return true;
+  }))];
 }
 
 // Bug 4 fix helper — given a text block and a list of known brands, return the
@@ -160,7 +174,7 @@ function parseDecisionTrace(responseText, primaryBrand, competitorBrands = []) {
     ...(primaryBrand ? [primaryBrand] : []),
     ...competitorBrands,
   ];
-  const properNounFallback = extractProperNouns(cleaned);
+  const properNounFallback = extractProperNouns(cleaned, knownBrands);
   // Merge: prefer known brands, then add any proper noun not already covered.
   const allBrands = [...knownBrands];
   for (const noun of properNounFallback) {

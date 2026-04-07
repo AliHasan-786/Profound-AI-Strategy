@@ -74,7 +74,7 @@ export default function AgentSimSetup({ onResult }) {
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      onResult(data);
+      onResult({ ...data, brandName: brandName.trim() || null });
     } catch (err) {
       const isNetworkError = !err.message || err.message.toLowerCase().includes('fetch') || err.message.toLowerCase().includes('network');
       setError(isNetworkError

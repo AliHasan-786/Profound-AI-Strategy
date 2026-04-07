@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../db.js';
 import { generatePromptBatch } from '../services/promptGenerator.js';
-import { callModel } from '../services/llmClient.js';
-import { parseResponse, classifyThemesWithLLM } from '../services/responseParser.js';
+import { callModelWithCitations } from '../services/llmClient.js';
+import { parseResponse, classifyThemesWithLLM, extractCitations } from '../services/responseParser.js';
 import { getFullResults } from '../services/sqlAnalytics.js';
 import { DEMO_RESULTS, DEMO_RUN_ID } from '../data/demoCache.js';
 
@@ -65,8 +65,8 @@ async function runAnalysisBackground(runId, brandName, competitors, prompts) {
     `INSERT INTO prompts (id, run_id, prompt_text, prompt_type, model) VALUES (?, ?, ?, ?, ?)`
   );
   const insertResponse = db.prepare(
-    `INSERT INTO responses (id, prompt_id, run_id, response_text, brand_mentioned, brands_mentioned, sentiment, sentiment_excerpt, model)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO responses (id, prompt_id, run_id, response_text, brand_mentioned, brands_mentioned, sentiment, sentiment_excerpt, model, citation_urls)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const updateProgress = db.prepare(
     `UPDATE analysis_runs SET completed_prompts = ?, failed_prompts = ? WHERE id = ?`
@@ -84,13 +84,19 @@ async function runAnalysisBackground(runId, brandName, competitors, prompts) {
         insertPrompt.run(promptId, runId, prompt_text, prompt_type, model);
 
         try {
-          const responseText = await callModel(model, prompt_text);
+          const { content: responseText, citations } = await callModelWithCitations(model, prompt_text);
           const parsed = parseResponse(responseText, brandName, allBrands);
+
+          // Perplexity returns structured citations; fall back to URL extraction from text
+          const finalCitations = citations.length > 0
+            ? citations
+            : (model === 'perplexity' ? extractCitations(responseText) : []);
 
           insertResponse.run(
             uuidv4(), promptId, runId, responseText,
             parsed.brand_mentioned, parsed.brands_mentioned,
-            parsed.sentiment, parsed.sentiment_excerpt, model
+            parsed.sentiment, parsed.sentiment_excerpt, model,
+            JSON.stringify(finalCitations)
           );
 
           completed++;

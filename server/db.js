@@ -34,6 +34,10 @@ function runMigrations(db) {
   if (!existingCols.includes('theme_analysis')) {
     db.exec(`ALTER TABLE analysis_runs ADD COLUMN theme_analysis TEXT`);
   }
+  const responseCols = db.pragma(`table_info(responses)`).map((c) => c.name);
+  if (!responseCols.includes('citation_urls')) {
+    db.exec(`ALTER TABLE responses ADD COLUMN citation_urls TEXT DEFAULT '[]'`);
+  }
 }
 
 function initSchema(db) {
@@ -70,6 +74,7 @@ function initSchema(db) {
       sentiment TEXT,
       sentiment_excerpt TEXT,
       model TEXT NOT NULL,
+      citation_urls TEXT DEFAULT '[]',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 

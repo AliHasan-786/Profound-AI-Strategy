@@ -6,6 +6,13 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const MODEL_COLORS = {
   'gpt-4o': '#22C55E',
   'claude-3-5-sonnet': '#8B5CF6',
+  'perplexity': '#10B981',
+};
+
+const MODEL_LABELS = {
+  'gpt-4o': 'GPT-4o Mini',
+  'claude-3-5-sonnet': 'Claude Haiku',
+  'perplexity': 'Perplexity',
 };
 
 export default function ProgressStream({ runId, isDemo, onComplete }) {
@@ -125,7 +132,7 @@ export default function ProgressStream({ runId, isDemo, onComplete }) {
                 borderRadius: 4, background: MODEL_COLORS[evt.model] + '20',
                 color: MODEL_COLORS[evt.model], whiteSpace: 'nowrap', marginTop: 1,
               }}>
-                {evt.model === 'gpt-4o' ? 'GPT-4o Mini' : 'Claude Haiku'}
+                {MODEL_LABELS[evt.model] || evt.model}
               </span>
               <span style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.4 }}>
                 {evt.prompt}

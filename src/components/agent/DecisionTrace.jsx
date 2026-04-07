@@ -1,12 +1,30 @@
-export default function DecisionTrace({ trace, brandName }) {
+export default function DecisionTrace({ trace, brandName, isDemo }) {
   if (!trace) return null;
 
   const { steps, finalSelection, primaryBrandConsidered, primaryBrandSelected, primaryBrandEliminatedAtStep } = trace;
-  const hasBrand = !!brandName;
+  const hasBrand = !!brandName && !isDemo;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Outcome banner */}
+      {/* Demo: neutral trace intro instead of brand-specific outcome */}
+      {isDemo && finalSelection && (
+        <div style={{
+          background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.15)',
+          borderRadius: 12, padding: '16px 24px',
+        }}>
+          <div style={{ fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
+            <span style={{ fontWeight: 600, color: '#F59E0B' }}>How to read this trace:</span>{' '}
+            The AI agent works through each step — identifying options, applying constraints, eliminating brands.
+            The final selected brand appears at the bottom. Enter your own brand above to see if it survives the same process.
+          </div>
+          <div style={{ marginTop: 10, fontSize: 13, color: '#6B7280' }}>
+            Demo scenario: Software Procurement — 200-person startup, $50/user/month budget ·{' '}
+            Final selection: <span style={{ color: '#F1F5F9', fontWeight: 600 }}>{finalSelection}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Live run: full outcome banner with brand-specific result */}
       {hasBrand && (
         <div style={{
           background: primaryBrandSelected

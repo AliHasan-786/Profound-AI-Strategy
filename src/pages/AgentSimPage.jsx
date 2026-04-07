@@ -110,6 +110,7 @@ export default function AgentSimPage() {
         <DecisionTrace
           trace={result.trace}
           brandName={result.brandName}
+          isDemo={result.isDemo}
         />
         <AgentReadinessScore
           scores={result.readinessScores}

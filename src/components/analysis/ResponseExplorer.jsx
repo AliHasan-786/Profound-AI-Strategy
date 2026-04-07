@@ -3,6 +3,7 @@ import { useState } from 'react';
 const MODEL_COLORS = {
   'gpt-4o': { bg: 'rgba(34,197,94,0.1)', text: '#22C55E', label: 'GPT-4o Mini' },
   'claude-3-5-sonnet': { bg: 'rgba(139,92,246,0.1)', text: '#8B5CF6', label: 'Claude Haiku' },
+  'perplexity': { bg: 'rgba(16,185,129,0.1)', text: '#10B981', label: 'Perplexity' },
 };
 
 const PROMPT_TYPE_COLORS = {

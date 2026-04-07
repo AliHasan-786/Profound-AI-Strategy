@@ -49,7 +49,7 @@ export default function CompetitiveTab({ results }) {
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 16 }}>Competitive Share of Voice</div>
           <div style={{ color: '#4B5563', fontSize: 13, marginTop: 4 }}>
-            % of all tested prompts where each brand was mentioned by either model
+            Share of all brand mentions across all AI responses
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -94,6 +94,7 @@ export default function CompetitiveTab({ results }) {
             <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 16 }}>Co-Mention Matrix</div>
             <div style={{ color: '#4B5563', fontSize: 13, marginTop: 4 }}>
               When AI mentions a competitor, how often does it also mention {brandName}?
+              {' '}<span style={{ color: '#374151' }}>Lift &gt; 1.5 means models specifically associate these brands together.</span>
             </div>
           </div>
 
@@ -116,6 +117,15 @@ export default function CompetitiveTab({ results }) {
                     <span style={{ color: '#4B5563', marginLeft: 6, fontSize: 12 }}>
                       (also mentions {brandName}...)
                     </span>
+                    {row.lift != null && (
+                      <span style={{
+                        marginLeft: 8, fontSize: 11, padding: '1px 6px', borderRadius: 4, fontWeight: 600,
+                        background: row.lift > 1.5 ? 'rgba(34,197,94,0.12)' : row.lift < 0.8 ? 'rgba(239,68,68,0.12)' : 'rgba(100,116,139,0.12)',
+                        color: row.lift > 1.5 ? '#22C55E' : row.lift < 0.8 ? '#EF4444' : '#6B7280',
+                      }}>
+                        {row.lift.toFixed(1)}x lift
+                      </span>
+                    )}
                   </td>
                   {row.byModel.map((m) => (
                     <td key={m.model} style={{ padding: '12px', textAlign: 'center' }}>
@@ -125,6 +135,15 @@ export default function CompetitiveTab({ results }) {
                       }}>
                         {m.pct}%
                       </span>
+                      {m.lift != null && (
+                        <span style={{
+                          marginLeft: 6, fontSize: 10, padding: '1px 5px', borderRadius: 3, fontWeight: 600,
+                          background: m.lift > 1.5 ? 'rgba(34,197,94,0.12)' : m.lift < 0.8 ? 'rgba(239,68,68,0.12)' : 'rgba(100,116,139,0.12)',
+                          color: m.lift > 1.5 ? '#22C55E' : m.lift < 0.8 ? '#EF4444' : '#6B7280',
+                        }}>
+                          {m.lift.toFixed(1)}x
+                        </span>
+                      )}
                       <div style={{ fontSize: 11, color: '#374151', marginTop: 2 }}>
                         {m.coMentions}/{m.total}
                       </div>
