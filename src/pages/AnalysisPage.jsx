@@ -24,6 +24,20 @@ const TABS = [
   { id: 'methodology', label: 'Methodology' },
 ];
 
+function saveRecentRun(runId, brandName, category) {
+  try {
+    const runs = getRecentRuns().filter(r => r.runId !== runId);
+    runs.unshift({ runId, brandName, category, completedAt: Date.now() });
+    localStorage.setItem('aeo_recent_runs', JSON.stringify(runs.slice(0, 5)));
+  } catch (_) {}
+}
+
+function getRecentRuns() {
+  try {
+    return JSON.parse(localStorage.getItem('aeo_recent_runs') || '[]');
+  } catch (_) { return []; }
+}
+
 function adaptDemoData(demo) {
   // Map DEMO_DATA shape to the results shape the tabs consume
   return {
@@ -120,6 +134,22 @@ export default function AnalysisPage() {
       const data = await res.json();
       setResults(data);
       setPhase('results');
+      // Persist so navigating away and back doesn't lose the run
+      saveRecentRun(id, data.run?.brand_name, data.run?.category);
+    } catch (err) {
+      setError(err.message);
+      setPhase('error');
+    }
+  }
+
+  async function handleLoadRun(id) {
+    setPhase('loading');
+    try {
+      const res = await fetch(`${API}/api/analysis/${id}/results`);
+      if (!res.ok) throw new Error('Failed to fetch results');
+      const data = await res.json();
+      setResults(data);
+      setPhase('results');
     } catch (err) {
       setError(err.message);
       setPhase('error');
@@ -141,21 +171,63 @@ export default function AnalysisPage() {
   }
 
   if (!runId && !isDemo) {
+    const recentRuns = getRecentRuns();
     return (
       <div>
         <PageHeader title="Analysis" subtitle="Run an analysis from the Setup page" />
-        <EmptyState
-          title="No analysis yet"
-          message="Go to the Setup page to enter a brand name and run an analysis."
-          action={
+        {recentRuns.length > 0 ? (
+          <div>
+            <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 15, marginBottom: 16 }}>
+              Recent Runs
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
+              {recentRuns.map((run) => (
+                <div key={run.runId} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: '#1E293B', border: '1px solid #334155', borderRadius: 10,
+                  padding: '14px 18px',
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 14 }}>
+                      {run.brandName || 'Analysis'}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#4B5563', marginTop: 3 }}>
+                      {run.category} · {new Date(run.completedAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleLoadRun(run.runId)}
+                    style={{
+                      background: '#0F172A', border: '1px solid #334155', color: '#94A3B8',
+                      borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer',
+                    }}
+                  >
+                    Load results →
+                  </button>
+                </div>
+              ))}
+            </div>
             <button onClick={() => navigate('/')} style={{
-              background: '#3B82F6', border: 'none', color: '#fff', borderRadius: 8,
-              padding: '10px 20px', fontSize: 14, cursor: 'pointer',
+              background: 'none', border: '1px solid #334155', color: '#4B5563',
+              borderRadius: 8, padding: '9px 18px', fontSize: 13, cursor: 'pointer',
             }}>
-              Go to Setup
+              Run new analysis
             </button>
-          }
-        />
+          </div>
+        ) : (
+          <EmptyState
+            title="No analysis yet"
+            message="Go to the Setup page to enter a brand name and run an analysis."
+            action={
+              <button onClick={() => navigate('/')} style={{
+                background: '#3B82F6', border: 'none', color: '#fff', borderRadius: 8,
+                padding: '10px 20px', fontSize: 14, cursor: 'pointer',
+              }}>
+                Go to Setup
+              </button>
+            }
+          />
+        )}
       </div>
     );
   }
