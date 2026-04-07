@@ -64,7 +64,6 @@ export default function Sidebar() {
       <div style={{ padding: '16px 20px', borderTop: '1px solid #1F2937' }}>
         <div style={{ fontSize: 11, color: '#374151', lineHeight: 1.5 }}>
           <div style={{ color: '#4B5563', fontWeight: 500 }}>Built by Ali Hasan</div>
-          <div>For Profound AI Strategist</div>
         </div>
       </div>
     </aside>
