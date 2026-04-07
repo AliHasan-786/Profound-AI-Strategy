@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim())
-  : ['http://localhost:5173', 'http://localhost:4173'];
+  : ['http://localhost:5173', 'http://localhost:4173', 'https://profound-ai-strategy.vercel.app'];
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
