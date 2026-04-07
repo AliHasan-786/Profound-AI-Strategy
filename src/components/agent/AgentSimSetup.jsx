@@ -76,7 +76,11 @@ export default function AgentSimSetup({ onResult }) {
       const data = await res.json();
       onResult(data);
     } catch (err) {
-      setError(err.message || 'Simulation failed');
+      const isNetworkError = !err.message || err.message.toLowerCase().includes('fetch') || err.message.toLowerCase().includes('network');
+      setError(isNetworkError
+        ? 'Backend server not reachable. The live simulation requires a local backend (npm run dev in /server). The demo trace above always works without setup.'
+        : err.message || 'Simulation failed'
+      );
     } finally {
       setLoading(false);
     }
