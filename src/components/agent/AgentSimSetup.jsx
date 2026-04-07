@@ -20,8 +20,8 @@ const SCENARIOS = [
     icon: '💻',
     description: 'AI agent evaluates and recommends an expense management platform',
     params: [
-      { key: 'teamSize', label: 'Team Size', placeholder: '50', default: '50', type: 'number' },
-      { key: 'budget', label: 'Budget ($/user/mo)', placeholder: '12', default: '12', type: 'number' },
+      { key: 'teamSize', label: 'Team Size', placeholder: '200', default: '200', type: 'number' },
+      { key: 'budget', label: 'Budget ($/user/mo)', placeholder: '50', default: '50', type: 'number' },
     ],
   },
   {

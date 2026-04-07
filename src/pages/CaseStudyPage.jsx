@@ -25,7 +25,7 @@ export default function CaseStudyPage() {
             <StatCard value="120+" label="prompts per run" />
             <StatCard value="4" label="prompt types" />
             <StatCard value="6" label="SQL analytics queries" />
-            <StatCard value="2" label="LLM models compared" />
+            <StatCard value="3" label="LLM models compared" />
           </div>
         </Section>
 

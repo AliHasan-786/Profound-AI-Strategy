@@ -129,11 +129,10 @@ const mentioned = brands.some(b =>
 );`}</CodeBlock>
         </InfoCard>
 
-        <InfoCard title="Sentiment Classification">
+        <InfoCard title="Sentiment & Theme Classification">
           <p style={prose}>
-            Keyword-based classification — no second LLM call (cost-prohibitive at scale).
-            The sentence containing the most sentiment-charged language is extracted as the
-            sentiment excerpt shown in the Sentiment tab.
+            <strong style={{ color: '#94A3B8' }}>Sentiment</strong> uses keyword matching per response — fast, no extra API cost per prompt.
+            The highest-signal sentence is extracted as the sentiment excerpt.
           </p>
           <CodeBlock>{`// Positive signals
 ['excellent','highly recommend','best',
@@ -142,6 +141,13 @@ const mentioned = brands.some(b =>
 ['poor','avoid','issues','problems',
  'disappointing','weak','unreliable']
 // Default → neutral`}</CodeBlock>
+          <p style={{ ...prose, marginTop: 12 }}>
+            <strong style={{ color: '#94A3B8' }}>Theme classification</strong> runs once after all prompts complete — a single batch call to{' '}
+            <code style={{ background: '#0F172A', padding: '1px 5px', borderRadius: 3, fontSize: 11 }}>claude-3-haiku</code>{' '}
+            that classifies each brand-mentioned response into one of 6 narrative frames (feature comparison, cost/value, category leader, etc.)
+            and a buying funnel stage (awareness / consideration / decision).
+            Batching keeps cost to ~$0.002 per full analysis run.
+          </p>
         </InfoCard>
 
         <InfoCard title="Model Parameters">
@@ -189,7 +195,7 @@ const mentioned = brands.some(b =>
       <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 12, padding: '24px' }}>
         <div style={{ fontWeight: 600, color: '#F1F5F9', fontSize: 16, marginBottom: 6 }}>Prompt Templates</div>
         <div style={{ fontSize: 13, color: '#4B5563', marginBottom: 20 }}>
-          25 variants per type × 2 models = 100 total prompts. Brand, category, and competitor names are injected at runtime.
+          30 variants per type × 4 prompt types × 3 models (GPT-4o Mini, Claude Haiku, Perplexity) = 120 total API calls. Brand, category, and competitor names are injected at runtime.
           {results && <span style={{ color: '#3B82F6' }}> Shown with your inputs interpolated.</span>}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
