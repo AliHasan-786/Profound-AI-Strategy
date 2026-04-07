@@ -160,9 +160,7 @@ export default function AnalysisPage() {
     if (!results) return;
     setExporting(true);
     try {
-      const auditRes = await fetch(`${API}/api/export/audit/${runId}`);
-      const auditData = await auditRes.json();
-      await generateAuditPDF(auditData);
+      await generateAuditPDF(results);
     } catch (err) {
       console.error('PDF export failed:', err);
     } finally {
@@ -238,7 +236,7 @@ export default function AnalysisPage() {
         title={results ? `${results.run?.brand_name || 'Analysis'} — AI Visibility Report` : 'Running Analysis...'}
         subtitle={results ? `${results.run?.category} · ${results.run?.total_prompts} prompts` : null}
         action={
-          results && !isDemo && (
+          results && (
             <button
               onClick={handleExportPDF}
               disabled={exporting}
