@@ -189,6 +189,23 @@ export const DEMO_RESULTS = {
     },
   ],
 
+  themeAnalysis: {
+    responseCount: 42,
+    themeDistribution: {
+      feature_comparison: 18,
+      cost_value: 12,
+      problem_solution: 7,
+      alternative: 4,
+      social_proof: 1,
+      category_leader: 2,
+    },
+    funnelDistribution: {
+      awareness: 5,
+      consideration: 25,
+      decision: 12,
+    },
+  },
+
   agentSimulation: {
     id: 'demo-agent-sim-1',
     scenario_type: 'hotel_booking',

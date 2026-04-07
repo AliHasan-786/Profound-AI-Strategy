@@ -17,7 +17,7 @@ export const DEMO_SUMMARY = {
   competitors: ['Brex', 'Expensify'],
   totalPrompts: 120,
   completedPrompts: 120,
-  modelsUsed: ['GPT-4o Mini', 'Claude Haiku'],
+  modelsUsed: ['GPT-4o Mini', 'Claude Haiku', 'Perplexity'],
   isDemo: true,
 };
 
@@ -26,12 +26,13 @@ export const DEMO_VISIBILITY = {
   byModel: [
     { model: 'GPT-4o Mini', mentionRate: 44, totalPrompts: 60, mentionCount: 26 },
     { model: 'Claude Haiku', mentionRate: 40, totalPrompts: 60, mentionCount: 24 },
+    { model: 'Perplexity', mentionRate: 38, totalPrompts: 25, mentionCount: 10 },
   ],
   byPromptType: [
-    { type: 'Brand-Named', mentionRate: 96, totalPrompts: 30, mentionCount: 29 },
-    { type: 'Category-General', mentionRate: 24, totalPrompts: 30, mentionCount: 7 },
-    { type: 'Competitor-Comparison', mentionRate: 52, totalPrompts: 30, mentionCount: 16 },
-    { type: 'Problem-First', mentionRate: 18, totalPrompts: 30, mentionCount: 5 },
+    { type: 'Brand-Named', mentionRate: 96, totalPrompts: 30, mentionCount: 29, perplexityRate: 88 },
+    { type: 'Category-General', mentionRate: 24, totalPrompts: 30, mentionCount: 7, perplexityRate: 22 },
+    { type: 'Competitor-Comparison', mentionRate: 52, totalPrompts: 30, mentionCount: 16, perplexityRate: 52 },
+    { type: 'Problem-First', mentionRate: 18, totalPrompts: 30, mentionCount: 5, perplexityRate: 14 },
   ],
   keyInsight: 'Ramp dominates brand-named queries (96%) but is largely absent from category-general discovery prompts (24%) — this gap represents the highest-priority AEO opportunity.',
 };
@@ -194,6 +195,23 @@ export const DEMO_AGENT_SIM = {
   ],
 };
 
+export const DEMO_THEME_ANALYSIS = {
+  responseCount: 42,
+  themeDistribution: {
+    feature_comparison: 18,
+    cost_value: 12,
+    problem_solution: 7,
+    alternative: 4,
+    social_proof: 1,
+    category_leader: 2,
+  },
+  funnelDistribution: {
+    awareness: 5,
+    consideration: 25,
+    decision: 12,
+  },
+};
+
 export const DEMO_DATA = {
   summary: DEMO_SUMMARY,
   visibility: DEMO_VISIBILITY,
@@ -201,4 +219,12 @@ export const DEMO_DATA = {
   sentiment: DEMO_SENTIMENT,
   responses: DEMO_RESPONSES,
   agentSim: DEMO_AGENT_SIM,
+  themeAnalysis: DEMO_THEME_ANALYSIS,
+  citationSources: [
+    { url: 'https://g2.com/categories/expense-management', frequency: 8 },
+    { url: 'https://www.trustradius.com/expense-management', frequency: 6 },
+    { url: 'https://ramp.com', frequency: 5 },
+    { url: 'https://www.reddit.com/r/smallbusiness/comments/expense-management', frequency: 4 },
+    { url: 'https://techcrunch.com/2024/ramp-funding', frequency: 3 },
+  ],
 };

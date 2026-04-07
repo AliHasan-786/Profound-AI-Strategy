@@ -12,6 +12,7 @@ import ErrorState from '../components/shared/ErrorState';
 import EmptyState from '../components/shared/EmptyState';
 import { generateAuditPDF } from '../utils/pdfExport';
 import { DEMO_DATA } from '../demoData';
+import StrategicInsights from '../components/analysis/StrategicInsights';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -34,7 +35,7 @@ function adaptDemoData(demo) {
       competitors: JSON.stringify(demo.summary.competitors),
     },
     mentionRateByModel: demo.visibility.byModel.map(m => ({
-      model: m.model === 'GPT-4o Mini' ? 'gpt-4o' : 'claude-3-5-sonnet',
+      model: m.model === 'GPT-4o Mini' ? 'gpt-4o' : m.model === 'Claude Haiku' ? 'claude-3-5-sonnet' : 'perplexity',
       mention_rate_pct: m.mentionRate,
       mentions: m.mentionCount,
       total_prompts: m.totalPrompts,
@@ -42,6 +43,7 @@ function adaptDemoData(demo) {
     mentionRateByPromptType: demo.visibility.byPromptType.flatMap(pt => [
       { prompt_type: pt.type.toLowerCase().replace(/-/g, '_').replace(/ /g, '_'), model: 'gpt-4o', mention_rate_pct: pt.mentionRate, total: pt.totalPrompts, mentions: pt.mentionCount },
       { prompt_type: pt.type.toLowerCase().replace(/-/g, '_').replace(/ /g, '_'), model: 'claude-3-5-sonnet', mention_rate_pct: Math.max(0, pt.mentionRate - 4), total: pt.totalPrompts, mentions: pt.mentionCount },
+      { prompt_type: pt.type.toLowerCase().replace(/-/g, '_').replace(/ /g, '_'), model: 'perplexity', mention_rate_pct: pt.perplexityRate ?? Math.max(0, pt.mentionRate - 8), total: pt.totalPrompts, mentions: pt.mentionCount },
     ]),
     competitiveShareOfVoice: demo.competitive.shareOfVoice.map(b => ({
       brand: b.brand, pct: b.mentionRate, mentions: b.mentionCount, total: demo.summary.totalPrompts,
@@ -64,9 +66,11 @@ function adaptDemoData(demo) {
     sampleResponses: demo.responses.map(r => ({
       id: r.id, response_text: r.responseText, brand_mentioned: r.brandMentioned ? 1 : 0,
       brands_mentioned: JSON.stringify(r.brandMentioned ? ['Ramp'] : []),
-      sentiment: r.sentiment, model: r.model === 'GPT-4o Mini' ? 'gpt-4o' : 'claude-3-5-sonnet',
+      sentiment: r.sentiment, model: r.model === 'GPT-4o Mini' ? 'gpt-4o' : r.model === 'Claude Haiku' ? 'claude-3-5-sonnet' : 'perplexity',
       prompt_text: r.promptText, prompt_type: r.promptType.toLowerCase().replace(/-/g, '_').replace(/ /g, '_'),
     })),
+    citationSources: demo.citationSources || [],
+    themeAnalysis: demo.themeAnalysis || null,
   };
 }
 
@@ -193,6 +197,9 @@ export default function AnalysisPage() {
 
       {phase === 'results' && results && (
         <div>
+          {/* Strategic findings — always visible, above tabs */}
+          <StrategicInsights results={results} />
+
           {/* Tab bar */}
           <div style={{
             display: 'flex', gap: 4, background: '#111827', border: '1px solid #1F2937',
@@ -221,8 +228,9 @@ export default function AnalysisPage() {
               fontSize: 12, color: '#4B5563', border: '1px solid #1F2937',
               borderRadius: 6, padding: '6px 12px', marginBottom: 16, display: 'inline-block',
             }}>
-              Demo uses <strong style={{ color: '#94A3B8' }}>GPT-4o Mini</strong> and{' '}
-              <strong style={{ color: '#94A3B8' }}>Claude Haiku</strong> for cost efficiency.
+              Demo uses <strong style={{ color: '#94A3B8' }}>GPT-4o Mini</strong>,{' '}
+              <strong style={{ color: '#94A3B8' }}>Claude Haiku</strong>, and{' '}
+              <strong style={{ color: '#94A3B8' }}>Perplexity</strong> for cost efficiency.
               Production deployments use GPT-4o and Claude Sonnet for higher accuracy.
             </div>
           )}
